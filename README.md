@@ -298,20 +298,26 @@ CODE-AI/
 
 <td align="center" width="200">
   <img src="https://ui-avatars.com/api/?name=Abdullah&background=6366f1&color=fff&size=80&bold=true" width="80" style="border-radius:50%"/><br/>
-  <b>Abdullah</b><br/>
-  <sub>Testing &<br/>Quality Assurance</sub>
+  <b>Dr Jawad</b><br/>
+  <sub>Supervisor</sub>
+</td>
+
+<td align="center" width="200">
+  <img src="https://ui-avatars.com/api/?name=Abdullah&background=6366f1&color=fff&size=80&bold=true" width="80" style="border-radius:50%"/><br/>
+  <b>Mr Abdullah</b><br/>
+  <sub>Co-Supervisor&<br/>Quality Assurance & Testing</sub>
 </td>
 
 <td align="center" width="200">
   <img src="https://ui-avatars.com/api/?name=Awais&background=0ea5e9&color=fff&size=80&bold=true" width="80" style="border-radius:50%"/><br/>
-  <b>Awais</b><br/>
-  <sub>NVD Dataset<br/>Preparation</sub>
+  <b>Mr Owais Ganae</b><br/>
+  <sub>Group Member</sub>
 </td>
 
 <td align="center" width="200">
   <img src="https://ui-avatars.com/api/?name=Hussain&background=0f172a&color=fff&size=80&bold=true" width="80" style="border-radius:50%"/><br/>
   <b>Hussain</b><br/>
-  <sub>NVD Dataset<br/>Preparation</sub>
+  <sub>Group Member</sub>
 </td>
 
 </tr>
