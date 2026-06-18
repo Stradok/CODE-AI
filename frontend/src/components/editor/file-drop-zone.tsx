@@ -100,10 +100,12 @@ export function FileDropZone({ children }: FileDropZoneProps) {
 
       {/* Drag overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-primary p-8">
-            <Upload className="h-10 w-10 text-primary" />
-            <p className="text-sm font-medium text-primary">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#E0E5EC]/90 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 rounded-[32px] bg-[#E0E5EC] px-10 py-8 shadow-[12px_12px_20px_rgb(163,177,198,0.7),-12px_-12px_20px_rgba(255,255,255,0.6)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E0E5EC] shadow-[inset_6px_6px_10px_rgb(163,177,198,0.6),inset_-6px_-6px_10px_rgba(255,255,255,0.5)]">
+              <Upload className="h-7 w-7 text-[#6C63FF]" />
+            </div>
+            <p className="text-sm font-medium text-[#3D4852]">
               Drop your .py file here
             </p>
           </div>

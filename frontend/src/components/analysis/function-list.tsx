@@ -17,28 +17,28 @@ const STATUS_CONFIG: Record<
   { icon: React.ReactNode; pill: string }
 > = {
   pending: {
-    icon: <ShieldCheck className="h-3 w-3 text-muted-foreground/30" />,
-    pill: "border-border/40 bg-transparent text-muted-foreground/40",
+    icon: <ShieldCheck className="h-3 w-3 text-[#6B7280]/30" />,
+    pill: "bg-[#E0E5EC] text-[#6B7280]/40",
   },
   analyzing: {
-    icon: <Loader2 className="h-3 w-3 animate-spin text-primary" />,
-    pill: "border-primary/30 bg-primary/10 text-primary",
+    icon: <Loader2 className="h-3 w-3 animate-spin text-[#6C63FF]" />,
+    pill: "bg-[#E0E5EC] text-[#6C63FF] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]",
   },
   clean: {
-    icon: <CheckCircle2 className="h-3 w-3 text-green-400" />,
-    pill: "border-green-500/25 bg-green-500/8 text-green-400",
+    icon: <CheckCircle2 className="h-3 w-3 text-[#38A169]" />,
+    pill: "bg-[#E0E5EC] text-[#38A169] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]",
   },
   vulnerable: {
-    icon: <ShieldAlert className="h-3 w-3 text-red-400" />,
-    pill: "border-red-500/25 bg-red-500/8 text-red-400",
+    icon: <ShieldAlert className="h-3 w-3 text-[#DC2626]" />,
+    pill: "bg-[#E0E5EC] text-[#DC2626] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]",
   },
   fixed: {
-    icon: <CheckCircle2 className="h-3 w-3 text-primary" />,
-    pill: "border-primary/25 bg-primary/8 text-primary",
+    icon: <CheckCircle2 className="h-3 w-3 text-[#6C63FF]" />,
+    pill: "bg-[#E0E5EC] text-[#6C63FF] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]",
   },
   error: {
-    icon: <AlertCircle className="h-3 w-3 text-orange-400" />,
-    pill: "border-orange-500/25 bg-orange-500/8 text-orange-400",
+    icon: <AlertCircle className="h-3 w-3 text-[#ED8936]" />,
+    pill: "bg-[#E0E5EC] text-[#ED8936] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]",
   },
 };
 
@@ -48,8 +48,8 @@ export function FunctionList() {
   if (functions.length === 0) return null;
 
   return (
-    <div className="shrink-0 border-b border-border bg-muted/5 px-3 py-2">
-      <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40">
+    <div className="shrink-0 bg-[#E0E5EC] px-3 py-2.5 shadow-[inset_0_-2px_4px_rgb(163,177,198,0.1)]">
+      <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-widest text-[#6B7280]/40">
         Functions · {functions.length}
       </p>
       <div className="flex flex-wrap gap-1.5">
@@ -57,29 +57,29 @@ export function FunctionList() {
           const cfg = STATUS_CONFIG[fn.status];
           return (
             <Tooltip key={fn.name}>
-              <TooltipTrigger asChild>
-                <div
-                  className={cn(
-                    "flex cursor-default items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-all",
-                    cfg.pill
-                  )}
-                >
-                  {cfg.icon}
-                  <span className="font-mono">{fn.name}</span>
-                  {fn.cveCount !== undefined && fn.cveCount > 0 && (
-                    <span className="rounded-full bg-red-500/20 px-1 text-[9px] text-red-400">
-                      {fn.cveCount}
-                    </span>
-                  )}
-                </div>
+              <TooltipTrigger
+                className={cn(
+                  "flex cursor-default items-center gap-1 rounded-full bg-[#E0E5EC] px-2.5 py-0.5 text-[10px] font-medium transition-all duration-300",
+                  cfg.pill,
+                  fn.status === "pending" && "shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]",
+                  fn.status === "analyzing" && "shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]"
+                )}
+              >
+                {cfg.icon}
+                <span className="font-mono">{fn.name}</span>
+                {fn.cveCount !== undefined && fn.cveCount > 0 && (
+                  <span className="rounded-full bg-[#DC2626]/20 px-1 text-[9px] text-[#DC2626]">
+                    {fn.cveCount}
+                  </span>
+                )}
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
-                <p className="font-mono text-xs font-medium">{fn.name}()</p>
+                <p className="font-mono text-xs font-medium text-[#3D4852]">{fn.name}()</p>
                 {fn.description && (
-                  <p className="mt-1 text-[11px] text-muted-foreground">{fn.description}</p>
+                  <p className="mt-1 text-[11px] text-[#6B7280]">{fn.description}</p>
                 )}
                 {!fn.description && (
-                  <p className="mt-1 text-[11px] text-muted-foreground capitalize">{fn.status}</p>
+                  <p className="mt-1 text-[11px] text-[#6B7280] capitalize">{fn.status}</p>
                 )}
               </TooltipContent>
             </Tooltip>

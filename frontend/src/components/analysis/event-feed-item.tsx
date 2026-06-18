@@ -14,21 +14,21 @@ import type { SSEEvent, SSEEventType } from "@/types/events";
 import { EVENT_DESCRIPTIONS } from "@/lib/constants";
 
 const EVENT_ICONS: Record<SSEEventType, React.ReactNode> = {
-  connected: <Info className="h-3.5 w-3.5 text-blue-400" />,
-  stage_start: <Loader2 className="h-3.5 w-3.5 text-blue-400 animate-spin" />,
-  description_generated: <FileText className="h-3.5 w-3.5 text-cyan-400" />,
-  preprocessing_complete: <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />,
-  function_start: <Loader2 className="h-3.5 w-3.5 text-blue-400 animate-spin" />,
-  rag_complete: <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />,
-  validation_complete: <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />,
-  risk_complete: <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />,
-  fix_attempt: <Wrench className="h-3.5 w-3.5 text-yellow-400 animate-spin" />,
-  fix_result: <Wrench className="h-3.5 w-3.5 text-green-400" />,
-  function_clean: <ShieldCheck className="h-3.5 w-3.5 text-green-400" />,
-  report_written: <FileText className="h-3.5 w-3.5 text-blue-400" />,
-  pdf_generated: <FileText className="h-3.5 w-3.5 text-blue-400" />,
-  pipeline_complete: <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />,
-  error: <AlertCircle className="h-3.5 w-3.5 text-red-400" />,
+  connected: <Info className="h-3.5 w-3.5 text-[#6C63FF]" />,
+  stage_start: <Loader2 className="h-3.5 w-3.5 text-[#6C63FF] animate-spin" />,
+  description_generated: <FileText className="h-3.5 w-3.5 text-[#38B2AC]" />,
+  preprocessing_complete: <CheckCircle2 className="h-3.5 w-3.5 text-[#38A169]" />,
+  function_start: <Loader2 className="h-3.5 w-3.5 text-[#6C63FF] animate-spin" />,
+  rag_complete: <ShieldCheck className="h-3.5 w-3.5 text-[#6C63FF]" />,
+  validation_complete: <CheckCircle2 className="h-3.5 w-3.5 text-[#38A169]" />,
+  risk_complete: <CheckCircle2 className="h-3.5 w-3.5 text-[#38A169]" />,
+  fix_attempt: <Wrench className="h-3.5 w-3.5 text-[#D69E2E] animate-spin" />,
+  fix_result: <Wrench className="h-3.5 w-3.5 text-[#38A169]" />,
+  function_clean: <ShieldCheck className="h-3.5 w-3.5 text-[#38A169]" />,
+  report_written: <FileText className="h-3.5 w-3.5 text-[#6C63FF]" />,
+  pdf_generated: <FileText className="h-3.5 w-3.5 text-[#6C63FF]" />,
+  pipeline_complete: <CheckCircle2 className="h-3.5 w-3.5 text-[#38A169]" />,
+  error: <AlertCircle className="h-3.5 w-3.5 text-[#DC2626]" />,
 };
 
 function formatTime(date: Date): string {
@@ -86,14 +86,14 @@ interface EventFeedItemProps {
 
 export function EventFeedItem({ event }: EventFeedItemProps) {
   return (
-    <div className="flex items-start gap-2 px-3 py-1 hover:bg-muted/30">
+    <div className="flex items-start gap-2 px-3 py-1.5 hover:bg-[#D1D9E6]/30 transition-colors duration-150">
       <span className="mt-0.5 shrink-0">
-        {EVENT_ICONS[event.type] ?? <Info className="h-3.5 w-3.5" />}
+        {EVENT_ICONS[event.type] ?? <Info className="h-3.5 w-3.5 text-[#6B7280]" />}
       </span>
-      <span className="flex-1 text-xs text-foreground/80">
+      <span className="flex-1 text-xs text-[#3D4852]/80">
         {getEventDetail(event)}
       </span>
-      <span className="shrink-0 text-[10px] font-mono text-muted-foreground">
+      <span className="shrink-0 text-[10px] font-mono text-[#6B7280]">
         {formatTime(event.timestamp)}
       </span>
     </div>

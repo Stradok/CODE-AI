@@ -17,21 +17,21 @@ export function EventFeed() {
 
   if (events.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center bg-[#E0E5EC]">
         {status === "analyzing" ? (
           <>
             <div className="relative">
-              <Radio className="h-7 w-7 text-primary/30" />
-              <Loader2 className="absolute inset-0 m-auto h-4 w-4 animate-spin text-primary" />
+              <Radio className="h-7 w-7 text-[#6B7280]/30" />
+              <Loader2 className="absolute inset-0 m-auto h-4 w-4 animate-spin text-[#6C63FF]" />
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-[#6B7280]">
               Connecting to analysis stream…
             </p>
           </>
         ) : (
           <>
-            <Radio className="h-7 w-7 text-muted-foreground/20" />
-            <p className="text-sm text-muted-foreground">
+            <Radio className="h-7 w-7 text-[#6B7280]/20" />
+            <p className="text-sm text-[#6B7280]">
               Live events will stream here during analysis
             </p>
           </>

@@ -15,54 +15,55 @@ import {
   Cpu,
   Database,
   Zap,
-  MessageSquare,
 } from "lucide-react";
 
 function EmptyState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-8 p-8 select-none">
-      {/* Hero */}
-      <div className="flex flex-col items-center gap-4 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-10 p-8 select-none bg-[#E0E5EC]">
+      {/* Hero icon well */}
+      <div className="flex flex-col items-center gap-5 text-center">
         <div className="relative">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 ring-1 ring-primary/30">
-            <ShieldCheck className="h-8 w-8 text-primary" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-[32px] bg-[#E0E5EC] shadow-[inset_6px_6px_10px_rgb(163,177,198,0.6),inset_-6px_-6px_10px_rgba(255,255,255,0.5)]">
+            <ShieldCheck className="h-10 w-10 text-[#6C63FF]" />
           </div>
-          <div className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-primary/30 ring-2 ring-background" />
+          <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E0E5EC] shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
+            <div className="h-2 w-2 rounded-full bg-[#6C63FF]" />
+          </div>
         </div>
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          <h2 className="text-xl font-bold tracking-tight text-[#3D4852]">
             Drop your Python file to begin
           </h2>
-          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+          <p className="mt-2 max-w-xs text-sm text-[#6B7280]">
             CODE-AI detects CVEs in your code using local LLMs and RAG over the
             NVD database — no data leaves your machine.
           </p>
         </div>
       </div>
 
-      {/* Pipeline steps */}
-      <div className="flex items-start gap-3">
+      {/* Pipeline steps - neumorphic chips */}
+      <div className="flex items-start gap-4">
         {STEPS.map((step, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/60 ring-1 ring-border">
-              <step.icon className="h-3.5 w-3.5 text-muted-foreground" />
+          <div key={i} className="flex flex-col items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E0E5EC] shadow-[inset_4px_4px_8px_rgb(163,177,198,0.6),inset_-4px_-4px_8px_rgba(255,255,255,0.5)]">
+              <step.icon className="h-4 w-4 text-[#6B7280]" />
             </div>
-            <span className="text-[10px] text-muted-foreground text-center leading-tight max-w-[60px]">
+            <span className="text-[10px] text-[#6B7280] text-center leading-tight max-w-[60px] font-medium">
               {step.label}
             </span>
             {i < STEPS.length - 1 && (
-              <div className="absolute mt-4 h-px w-6 bg-border" />
+              <div className="mt-1 h-px w-8 bg-[#B0BEC5]/30" />
             )}
           </div>
         ))}
       </div>
 
-      {/* Hint */}
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-border/60 px-4 py-2.5 text-xs text-muted-foreground">
-        <Upload className="h-3.5 w-3.5 shrink-0" />
+      {/* Hint pill */}
+      <div className="flex items-center gap-2.5 rounded-2xl bg-[#E0E5EC] px-5 py-3 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)] text-xs text-[#6B7280]">
+        <Upload className="h-4 w-4 shrink-0" />
         <span>
           Click <strong>Upload</strong> in the toolbar or drag & drop a{" "}
-          <code className="rounded bg-muted/60 px-1">.py</code> file here
+          <code className="rounded bg-[#D1D9E6] px-1 font-mono">.py</code> file here
         </span>
       </div>
     </div>
@@ -84,17 +85,17 @@ export function IdeLayout() {
   return (
     <ResizablePanelGroup
       orientation="horizontal"
-      className="flex-1 overflow-hidden border-t border-border"
+      className="flex-1 overflow-hidden bg-[#E0E5EC]"
     >
       {/* Left panel: Code Editor */}
       <ResizablePanel defaultSize="72%" minSize="30%">
-        <div className="flex h-full flex-col">
+        <div className="flex h-full flex-col bg-[#E0E5EC]">
           {/* Editor tab bar */}
           {filename && (
-            <div className="flex shrink-0 items-center border-b border-border bg-muted/20">
-              <div className="flex items-center gap-2 border-r border-border/60 bg-background/50 px-4 py-1.5">
-                <div className="h-2 w-2 rounded-full bg-primary/60" />
-                <span className="font-mono text-[11px] font-medium text-foreground">
+            <div className="flex shrink-0 items-center bg-[#E0E5EC] shadow-[0_2px_4px_rgb(163,177,198,0.2)]">
+              <div className="flex items-center gap-2.5 bg-[#E0E5EC] px-4 py-1.5 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)] rounded-tr-xl">
+                <div className="h-2 w-2 rounded-full bg-[#6C63FF]" />
+                <span className="font-mono text-[11px] font-semibold text-[#3D4852]">
                   {filename}
                 </span>
               </div>
@@ -103,18 +104,15 @@ export function IdeLayout() {
 
           {/* Description input */}
           {filename && (
-            <div className="shrink-0 border-b border-border bg-muted/10 px-4 py-2">
-              <div className="flex items-start gap-2">
-                <MessageSquare className="mt-[5px] h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-                <div className="flex-1">
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe what this code does (optional — AI generates one if empty)"
-                    rows={1}
-                    className="w-full resize-none bg-transparent font-sans text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:outline-none"
-                  />
-                </div>
+            <div className="shrink-0 bg-[#E0E5EC] px-4 py-2.5 shadow-[inset_0_-2px_4px_rgb(163,177,198,0.15)]">
+              <div className="flex items-start gap-2.5 rounded-2xl bg-[#E0E5EC] px-4 py-2.5 shadow-[inset_4px_4px_8px_rgb(163,177,198,0.6),inset_-4px_-4px_8px_rgba(255,255,255,0.5)]">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe what this code does (optional — AI generates one if empty)"
+                  rows={1}
+                  className="w-full resize-none bg-transparent font-sans text-xs text-[#3D4852] placeholder:text-[#A0AEC0] focus:outline-none"
+                />
               </div>
             </div>
           )}

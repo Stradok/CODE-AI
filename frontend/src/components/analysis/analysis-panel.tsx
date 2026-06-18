@@ -20,17 +20,17 @@ export function AnalysisPanel() {
     <Tabs
       value={activeTab}
       onValueChange={setActiveTab}
-      className="flex h-full flex-col"
+      className="flex h-full flex-col bg-[#E0E5EC]"
     >
       {/* Tab bar */}
-      <div className="flex shrink-0 items-center border-b border-border bg-muted/20 px-2">
-        <TabsList className="h-8 gap-0.5 bg-transparent p-0">
+      <div className="flex shrink-0 items-center bg-[#E0E5EC] px-2 pt-2 shadow-[0_2px_4px_rgb(163,177,198,0.15)]">
+        <TabsList className="h-9 gap-1 bg-[#E0E5EC] p-0.5 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]">
           <TabsTrigger
             value="feed"
-            className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="flex h-7 items-center gap-1.5 rounded-xl px-3 text-[11px] data-active:text-[#3D4852]"
           >
             {status === "analyzing" ? (
-              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              <Loader2 className="h-3 w-3 animate-spin text-[#6C63FF]" />
             ) : (
               <Activity className="h-3 w-3" />
             )}
@@ -38,19 +38,19 @@ export function AnalysisPanel() {
           </TabsTrigger>
           <TabsTrigger
             value="results"
-            className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="flex h-7 items-center gap-1.5 rounded-xl px-3 text-[11px] data-active:text-[#3D4852]"
           >
             <Layers className="h-3 w-3" />
             Results
             {results.length > 0 && (
-              <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[9px] text-primary">
+              <span className="rounded-full bg-[#6C63FF]/15 px-1.5 py-0.5 text-[9px] text-[#6C63FF]">
                 {results.length}
               </span>
             )}
           </TabsTrigger>
           <TabsTrigger
             value="reports"
-            className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="flex h-7 items-center gap-1.5 rounded-xl px-3 text-[11px] data-active:text-[#3D4852]"
           >
             <FileDown className="h-3 w-3" />
             Export
@@ -79,8 +79,8 @@ export function AnalysisPanel() {
             <ReportDownload />
           </>
         ) : (
-          <div className="flex h-full items-center justify-center p-8 text-center text-muted-foreground">
-            <p className="text-sm">Reports will be available after analysis completes</p>
+          <div className="flex h-full items-center justify-center p-8 text-center">
+            <p className="text-sm text-[#6B7280]">Reports will be available after analysis completes</p>
           </div>
         )}
       </TabsContent>

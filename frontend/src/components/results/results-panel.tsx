@@ -11,18 +11,18 @@ export function ResultsPanel() {
 
   if (status === "idle") {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center text-muted-foreground">
-        <ShieldCheck className="h-8 w-8 text-muted-foreground/20" />
-        <p className="text-sm">Results will appear here after analysis</p>
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center bg-[#E0E5EC]">
+        <ShieldCheck className="h-8 w-8 text-[#6B7280]/20" />
+        <p className="text-sm text-[#6B7280]">Results will appear here after analysis</p>
       </div>
     );
   }
 
   if (status === "analyzing" && results.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary/50" />
-        <p className="text-sm text-muted-foreground">
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center bg-[#E0E5EC]">
+        <Loader2 className="h-6 w-6 animate-spin text-[#6C63FF]/50" />
+        <p className="text-sm text-[#6B7280]">
           Analysis in progress — results appear as each function completes
         </p>
       </div>
@@ -31,10 +31,10 @@ export function ResultsPanel() {
 
   if (results.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
-        <ShieldCheck className="h-10 w-10 text-green-400/50" />
-        <p className="text-sm font-medium text-green-400">All functions are clean</p>
-        <p className="text-xs text-muted-foreground">No vulnerabilities were detected</p>
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center bg-[#E0E5EC]">
+        <ShieldCheck className="h-10 w-10 text-[#38A169]/50" />
+        <p className="text-sm font-medium text-[#38A169]">All functions are clean</p>
+        <p className="text-xs text-[#6B7280]">No vulnerabilities were detected</p>
       </div>
     );
   }

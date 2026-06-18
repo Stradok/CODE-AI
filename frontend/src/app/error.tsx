@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -11,22 +10,22 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error(error);
-  }, [error]);
-
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <AlertCircle className="h-12 w-12 text-destructive" />
-        <h2 className="text-lg font-semibold">Something went wrong</h2>
-        <p className="text-sm text-muted-foreground max-w-md">
-          {error.message}
-        </p>
-        <Button onClick={reset} variant="outline">
-          Try again
-        </Button>
+    <div className="flex h-full flex-col items-center justify-center gap-6 p-8 bg-[#E0E5EC]">
+      <div className="flex h-16 w-16 items-center justify-center rounded-[32px] bg-[#E0E5EC] shadow-[inset_6px_6px_10px_rgb(163,177,198,0.6),inset_-6px_-6px_10px_rgba(255,255,255,0.5)]">
+        <AlertCircle className="h-8 w-8 text-[#DC2626]" />
       </div>
+      <div className="text-center">
+        <h2 className="text-lg font-bold tracking-tight text-[#3D4852]">
+          Something went wrong
+        </h2>
+        <p className="mt-1 text-sm text-[#6B7280]">
+          {error.message || "An unexpected error occurred"}
+        </p>
+      </div>
+      <Button variant="primary" size="sm" onClick={reset}>
+        Try again
+      </Button>
     </div>
   );
 }

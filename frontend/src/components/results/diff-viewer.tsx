@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 const ReactDiffViewer = dynamic(() => import("react-diff-viewer-continued"), {
   ssr: false,
   loading: () => (
-    <div className="p-4 text-xs text-muted-foreground">Loading diff...</div>
+    <div className="p-4 text-xs text-[#6B7280]">Loading diff...</div>
   ),
 });
 
@@ -21,12 +21,24 @@ export function DiffViewer({ oldCode, newCode }: DiffViewerProps) {
         oldValue={oldCode}
         newValue={newCode}
         splitView={false}
-        useDarkTheme={true}
+        useDarkTheme={false}
         hideLineNumbers={false}
         styles={{
           contentText: {
             fontSize: "12px",
             fontFamily: "var(--font-geist-mono), monospace",
+          },
+          diffContainer: {
+            background: "#E0E5EC",
+          },
+          gutter: {
+            background: "#E0E5EC",
+          },
+          line: {
+            background: "#E0E5EC",
+          },
+          titleBlock: {
+            background: "#D1D9E6",
           },
         }}
       />
