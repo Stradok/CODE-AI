@@ -14,10 +14,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_PID=""
 FRONTEND_PID=""
 
-# ── Port helper ───────────────────────────────────────────────────────────────
+# ── Port helper (Linux + macOS) ───────────────────────────────────────────────
 free_port() {
     local port=$1
-    while ss -tlnp 2>/dev/null | grep -q ":${port} "; do
+    while lsof -ti ":${port}" &>/dev/null 2>&1 || \
+          ss -tlnp 2>/dev/null | grep -q ":${port} "; do
         port=$((port + 1))
     done
     echo "$port"

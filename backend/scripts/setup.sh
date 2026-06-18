@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# scripts/setup.sh — One-command setup for CODE-AI on Linux.
+# scripts/setup.sh — One-command setup for CODE-AI (Linux + macOS).
 # Run from the backend repo root: bash scripts/setup.sh
 set -euo pipefail
+
+OS="$(uname -s)"
 
 BOLD='\033[1m'
 GREEN='\033[0;32m'
@@ -40,7 +42,15 @@ if command -v ollama &>/dev/null; then
     success "Ollama already installed ($(ollama --version 2>/dev/null || echo 'unknown version'))"
 else
     info "Installing Ollama..."
-    curl -fsSL https://ollama.ai/install.sh | sh
+    if [ "$OS" = "Darwin" ]; then
+        if command -v brew &>/dev/null; then
+            brew install ollama
+        else
+            die "Homebrew not found. Install Ollama manually from https://ollama.com/download/mac then re-run this script."
+        fi
+    else
+        curl -fsSL https://ollama.ai/install.sh | sh
+    fi
     success "Ollama installed"
 fi
 
