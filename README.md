@@ -59,46 +59,49 @@ Stage 5 is self-verifying: generated patches are re-run through stages 2–4 bef
 
 ```mermaid
 graph TB
-    subgraph UI["Web UI — localhost:3000"]
-        A[Monaco Editor] --> B[Analysis Panel]
-        B --> C[Results + PDF]
-    end
 
-    subgraph API["FastAPI Server — localhost:8000"]
-        D[/upload] --> E[/analyze SSE stream]
-        E --> F[Job Registry · TTL 1h]
-    end
+subgraph UI["Web UI — localhost:3000"]
+    A["Monaco Editor"] --> B["Analysis Panel"]
+    B --> C["Results + PDF"]
+end
 
-    subgraph Pipeline["6-Stage Pipeline"]
-        G[Preprocessing] --> H[RAG Analyzer]
-        H --> I[Validator]
-        I --> J[Risk Scorer]
-        J --> K[Recommender]
-        K --> L[Reporter]
-        K -->|verify fix| H
-    end
+subgraph API["FastAPI Server — localhost:8000"]
+    D["/upload"] --> E["/analyze SSE stream"]
+    E --> F["Job Registry · TTL 1h"]
+end
 
-    subgraph Inference["Local Inference"]
-        M[Ollama]
-        N[deepseek-r1:8b]
-        O[llama3.1:8b]
-        P[qwen2.5-coder:7b]
-        Q[mistral:7b]
-        M --> N & O & P & Q
-    end
+subgraph Pipeline["6-Stage Pipeline"]
+    G["Preprocessing"] --> H["RAG Analyzer"]
+    H --> I["Validator"]
+    I --> J["Risk Scorer"]
+    J --> K["Recommender"]
+    K --> L["Reporter"]
+    K -->|verify fix| H
+end
 
-    subgraph Data["NVD Knowledge Base"]
-        R[nvd_cves_min.jsonl]
-        S[cve_embeddings_local.npz]
-        T[all-MiniLM-L6-v2]
-    end
+subgraph Inference["Local Inference"]
+    M["Ollama"]
+    N["deepseek-r1:8b"]
+    O["llama3.1:8b"]
+    P["qwen2.5-coder:7b"]
+    Q["mistral:7b"]
+    M --> N
+    M --> O
+    M --> P
+    M --> Q
+end
 
-    UI -->|REST + SSE| API
-    API --> Pipeline
-    Pipeline --> Inference
-    H --> Data
+subgraph Data["NVD Knowledge Base"]
+    R["nvd_cves_min.jsonl"]
+    S["cve_embeddings_local.npz"]
+    T["all-MiniLM-L6-v2"]
+end
+
+UI -->|REST + SSE| API
+API --> Pipeline
+Pipeline --> Inference
+H --> Data
 ```
-
 ---
 
 ## Features
