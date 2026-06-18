@@ -1,0 +1,89 @@
+[project]
+name = "code-ai"
+version = "1.0.0"
+description = "Context-aware CVE detection and mitigation pipeline using local LLMs (Ollama) and RAG over the NVD database."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.14"
+
+dependencies = [
+    # Core ML / Embeddings
+    "sentence-transformers>=2.2.0",
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "scikit-learn>=1.3.0",
+    "numpy>=1.24.0",
+    # LLM Backend
+    "ollama>=0.2.0",
+    # Configuration & Data
+    "pyyaml>=6.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    # PDF Report Generation
+    "fpdf2>=2.7.0",
+    # OpenAI GPT Fallback
+    "openai>=1.0.0",
+    # LangChain Output Parsers
+    "langchain-core>=0.3.0",
+    # Progress Bars
+    "tqdm>=4.65.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "python-multipart>=0.0.9",
+    "loguru>=0.7.3",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = [
+    "output",
+    "tests/fixtures",  # contains intentionally vulnerable Python
+    "Proff",
+    "*.ipynb",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+]
+ignore = [
+    "E501",  # line too long — handled by formatter; long LLM prompts are fine
+    "B008",  # function call in default arg — common with config getters
+    "SIM108",  # ternary over if/else — sometimes harms readability
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Simulation harness has long mock strings and intentionally unused vars
+"tests/integration/simulate_pipeline.py" = ["E402", "F841"]
+# Root shims are re-export files; unused-import is intentional
+"utils.py" = ["F401"]
+"deepseek.py" = ["F401"]
+"preprocessing.py" = ["F401"]
+"validator.py" = ["F401"]
+"risk_analyzer.py" = ["F401"]
+"recommender.py" = ["F401"]
+"report.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pipeline", "api", "tests"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

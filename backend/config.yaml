@@ -1,0 +1,50 @@
+# config.yaml — CVE Vulnerability Detection & Remediation Pipeline
+#
+# Each pipeline stage uses a different model optimised for its task.
+# All models are served locally via Ollama.
+
+models:
+  # REASONING — chain-of-thought for understanding complex security logic.
+  preprocessing: "deepseek-r1:8b"
+
+  # REASONING — matches abstract code patterns to CVE descriptions.
+  rag_analyzer: "deepseek-r1:8b"
+
+  # FAST INSTRUCTION — strict JSON-only output, low latency.
+  validator: "llama3.1:8b"
+
+  # CODING — specialised in syntax, libraries, and secure patterns.
+  recommender: "qwen2.5-coder:7b"
+
+  # ANALYTICAL — summarises changes for human-readable reports.
+  reporter: "mistral:7b"
+
+  # JUDGE — independent skeptical verification of pipeline output.
+  judge: "deepseek-r1:8b"
+
+  # GPT FALLBACK — used when local models cannot fix a vulnerability.
+  gpt_model: "gpt-4o"
+
+  # VERIFICATION — coding model used by verify.py to check if fixes worked.
+  # Must be a CODE-AWARE model (not an instruction model) so it can
+  # distinguish safe patterns (parameterized queries) from unsafe ones
+  # (string concatenation).  Uses the same model as the recommender.
+  verifier: "qwen2.5-coder:7b"
+
+settings:
+  max_remediation_attempts: 3
+  temperature: 0.0          # 0.0 for deterministic JSON output
+  device: "auto"            # "auto" detects cuda/mps/cpu; override with "cuda", "mps", or "cpu"
+  llm_timeout: 120          # seconds per LLM call (was 300 — reduced to fail fast)
+  top_k_cves: 6             # number of CVEs to retrieve per query
+  min_cve_similarity: 0.25  # ignore CVEs below this cosine similarity (prevents hallucinations on clean code)
+  log_level: "INFO"         # DEBUG, INFO, WARNING, ERROR
+
+# OpenAI GPT fallback — set OPENAI_API_KEY env var instead of putting the key here
+
+paths:
+  cve_embeddings: "pipeline/data/cve_embeddings_local.npz"
+  cve_jsonl: "pipeline/data/nvd_cves_min.jsonl"
+  embedding_model: "pipeline/data/models/all-MiniLM-L6-v2"
+  output_dir: "output"
+  preprocessed: "preprocessed_data.json"

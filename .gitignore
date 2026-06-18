@@ -1,0 +1,64 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ── Node / Next.js ────────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+build/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Secrets — never commit ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# ── CVE data — too large for git (see backend/README.md) ─────────────────────
+backend/pipeline/data/cve_embeddings_local.npz
+backend/pipeline/data/nvd_cves.jsonl
+backend/pipeline/data/nvd_cves_min.jsonl
+
+# ── Embedding model weights — downloaded by tools/download_model.py ──────────
+backend/pipeline/data/models/**/*.safetensors
+backend/pipeline/data/models/**/*.bin
+backend/pipeline/data/models/**/*.pt
+
+# ── Pipeline runtime output ───────────────────────────────────────────────────
+backend/output/
+backend/preprocessed_data.json
+
+# ── Proof / demo videos ───────────────────────────────────────────────────────
+backend/Proff/
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini

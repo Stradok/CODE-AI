@@ -1,0 +1,165 @@
+{
+  "name": "code-ai-cve-detector",
+  "displayName": "CODE-AI CVE Detector",
+  "description": "Run the CODE-AI CVE detection & remediation pipeline on Python files directly from VS Code.",
+  "version": "0.2.0",
+  "publisher": "code-ai",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "cve",
+    "security",
+    "vulnerability",
+    "python",
+    "ollama"
+  ],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "code-ai.analyzeFile",
+        "title": "Analyze Current File for CVEs",
+        "category": "CODE-AI",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "code-ai.analyzeFileInteractive",
+        "title": "Analyze Current File (Interactive)",
+        "category": "CODE-AI",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "code-ai.analyzeFilePdf",
+        "title": "Analyze Current File + PDF Report",
+        "category": "CODE-AI",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "code-ai.checkOllama",
+        "title": "Check Ollama Status",
+        "category": "CODE-AI",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "code-ai.openResults",
+        "title": "Open Pipeline Results",
+        "category": "CODE-AI",
+        "icon": "$(json)"
+      },
+      {
+        "command": "code-ai.startServer",
+        "title": "Start API Server",
+        "category": "CODE-AI",
+        "icon": "$(server)"
+      },
+      {
+        "command": "code-ai.stopServer",
+        "title": "Stop API Server",
+        "category": "CODE-AI",
+        "icon": "$(debug-stop)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "code-ai.analyzeFile",
+          "when": "resourceLangId == python",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "code-ai.analyzeFile",
+          "when": "resourceLangId == python",
+          "group": "code-ai@1"
+        },
+        {
+          "command": "code-ai.analyzeFilePdf",
+          "when": "resourceLangId == python",
+          "group": "code-ai@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "code-ai.analyzeFile",
+          "when": "resourceLangId == python",
+          "group": "code-ai@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "code-ai.analyzeFile",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "editorTextFocus && resourceLangId == python"
+      }
+    ],
+    "configuration": {
+      "title": "CODE-AI CVE Detector",
+      "properties": {
+        "codeAI.projectRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the CODE-AI project root (containing config.yaml). Auto-detected if left empty."
+        },
+        "codeAI.uvPath": {
+          "type": "string",
+          "default": "uv",
+          "description": "Path to the uv executable."
+        },
+        "codeAI.autoMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run pipeline in fully automated mode (no interactive prompts)."
+        },
+        "codeAI.logLevel": {
+          "type": "string",
+          "default": "INFO",
+          "enum": [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR"
+          ],
+          "description": "Log level for the pipeline."
+        },
+        "codeAI.pythonVersion": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Python version for `uv run --python`. Leave empty to use the project's `.python-version` file. Set to e.g. `3.13` to avoid Python 3.14 compatibility issues with LangChain/Pydantic V1."
+        },
+        "codeAI.suppressWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suppress Python deprecation & Pydantic V1 warnings that appear on Python ≥ 3.14."
+        },
+        "codeAI.serverPort": {
+          "type": "number",
+          "default": 8000,
+          "description": "Port for the FastAPI server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}

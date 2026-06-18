@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Large data files (download separately — see README)
+cve_embeddings_local.npz
+nvd_cves.jsonl
+nvd_cves_min.jsonl
+
+# Runtime output
+output/
+preprocessed_data.json
+
+# Proof / demo videos (too large for GitHub)
+Proff/
+
+# Secrets — never commit API keys
+# (use OPENAI_API_KEY env var instead)
