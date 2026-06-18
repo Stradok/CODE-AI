@@ -24,22 +24,20 @@ setup-frontend: ## Install frontend Node.js dependencies
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 
-start: ## Start backend + frontend (opens on localhost:3000)
-	@echo "Starting CODE-AI..."
-	@$(MAKE) -C $(BACKEND_DIR) start &
-	@sleep 3
-	@$(MAKE) -C $(FRONTEND_DIR) start
+start: ## Start everything — Ollama + backend + frontend (Ctrl+C stops all)
+	@bash scripts/start.sh
 
-start-backend:  ## Start backend only (localhost:8000)
+start-backend:  ## Backend only (localhost:8000)
 	$(MAKE) -C $(BACKEND_DIR) start
 
-start-frontend: ## Start frontend only (localhost:3000)
+start-frontend: ## Frontend only (localhost:3000)
 	$(MAKE) -C $(FRONTEND_DIR) start
 
 stop: ## Stop all services
-	$(MAKE) -C $(BACKEND_DIR) stop
-	$(MAKE) -C $(FRONTEND_DIR) stop
-	@-pkill -x ollama 2>/dev/null || true
+	@-pkill -f "uvicorn api.server" 2>/dev/null || true
+	@-pkill -f "next dev"           2>/dev/null || true
+	@-pkill -x ollama               2>/dev/null || true
+	@echo "All services stopped."
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 
