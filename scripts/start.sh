@@ -66,6 +66,7 @@ HOST="${HOST:-0.0.0.0}"
 
 # ── Backend ───────────────────────────────────────────────────────────────────
 echo -e "${BOLD}[INFO]${NC} Starting backend on :${BACKEND_PORT}..."
+ALLOWED_ORIGINS="http://localhost:${FRONTEND_PORT}" \
 uv run uvicorn api.server:app \
     --host "$HOST" \
     --port "$BACKEND_PORT" \
@@ -95,6 +96,9 @@ done
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 cd "$ROOT_DIR/frontend"
+
+# Clear stale Next.js build cache to prevent hydration mismatches
+[ -d ".next" ] && rm -rf .next && echo -e "${BOLD}[INFO]${NC} Cleared Next.js cache"
 
 echo -e "${BOLD}[INFO]${NC} Starting frontend on :${FRONTEND_PORT}..."
 BACKEND_URL="http://localhost:${BACKEND_PORT}" \
