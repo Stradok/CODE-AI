@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-command launcher for CODE-AI (backend + frontend + Ollama).
-# Run from the repo root: bash scripts/start.sh  — or just: make start
+# Auto-selects the next free port if the default is taken.
 set -euo pipefail
 
 BOLD='\033[1m'
@@ -14,6 +14,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_PID=""
 FRONTEND_PID=""
 
+# ── Port helper ───────────────────────────────────────────────────────────────
+free_port() {
+    local port=$1
+    while ss -tlnp 2>/dev/null | grep -q ":${port} "; do
+        port=$((port + 1))
+    done
+    echo "$port"
+}
+
 # ── Cleanup on exit / Ctrl+C ──────────────────────────────────────────────────
 cleanup() {
     echo ""
@@ -21,8 +30,8 @@ cleanup() {
     [ -n "$BACKEND_PID"  ] && kill "$BACKEND_PID"  2>/dev/null || true
     [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null || true
     pkill -f "uvicorn api.server" 2>/dev/null || true
-    pkill -f "next dev"          2>/dev/null || true
-    echo -e "${GREEN}All stopped. Bye.${NC}"
+    pkill -f "next dev"           2>/dev/null || true
+    echo -e "${GREEN}All stopped.${NC}"
 }
 trap cleanup EXIT INT TERM
 
@@ -41,54 +50,62 @@ else
     echo -e "${GREEN}[OK]${NC}   Ollama already running"
 fi
 
-# ── Backend ───────────────────────────────────────────────────────────────────
+# ── Pick ports ────────────────────────────────────────────────────────────────
 cd "$ROOT_DIR/backend"
+[ -f ".env" ] && set -o allexport && source .env && set +o allexport || true
 
-if [ -f ".env" ]; then
-    set -o allexport
-    # shellcheck disable=SC1091
-    source .env
-    set +o allexport
-fi
+BACKEND_PORT=$(free_port "${PORT:-8000}")
+FRONTEND_PORT=$(free_port 3000)
+
+[ "$BACKEND_PORT" != "${PORT:-8000}" ] && \
+    echo -e "${YELLOW}[WARN]${NC} Port ${PORT:-8000} in use — backend on :${BACKEND_PORT}"
+[ "$FRONTEND_PORT" != "3000" ] && \
+    echo -e "${YELLOW}[WARN]${NC} Port 3000 in use — frontend on :${FRONTEND_PORT}"
 
 HOST="${HOST:-0.0.0.0}"
-PORT="${PORT:-8000}"
 
-echo -e "${BOLD}[INFO]${NC} Starting backend on :${PORT}..."
+# ── Backend ───────────────────────────────────────────────────────────────────
+echo -e "${BOLD}[INFO]${NC} Starting backend on :${BACKEND_PORT}..."
 uv run uvicorn api.server:app \
     --host "$HOST" \
-    --port "$PORT" \
+    --port "$BACKEND_PORT" \
     --reload \
     --log-level info > /tmp/codeai-backend.log 2>&1 &
 BACKEND_PID=$!
 
-# Wait for health (up to 30 s)
+# Wait for health (up to 40 s)
 echo -ne "${BOLD}[INFO]${NC} Waiting for backend"
-for i in $(seq 1 30); do
-    if curl -sf "http://localhost:${PORT}/health" > /dev/null 2>&1; then
+BACKEND_READY=0
+for i in $(seq 1 40); do
+    if curl -sf "http://localhost:${BACKEND_PORT}/health" > /dev/null 2>&1; then
+        BACKEND_READY=1
         echo -e " ${GREEN}ready${NC}"
         break
     fi
     if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
         echo ""
-        echo -e "${RED}[FAIL]${NC} Backend crashed. Check: /tmp/codeai-backend.log"
+        echo -e "${RED}[FAIL]${NC} Backend crashed. Logs: /tmp/codeai-backend.log"
+        tail -20 /tmp/codeai-backend.log >&2
         exit 1
     fi
     echo -n "."
     sleep 1
 done
+[ "$BACKEND_READY" -eq 0 ] && echo -e " ${YELLOW}timeout (still starting)${NC}"
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 cd "$ROOT_DIR/frontend"
 
-echo -e "${BOLD}[INFO]${NC} Starting frontend on :3000..."
-npm run dev > /tmp/codeai-frontend.log 2>&1 &
+echo -e "${BOLD}[INFO]${NC} Starting frontend on :${FRONTEND_PORT}..."
+BACKEND_URL="http://localhost:${BACKEND_PORT}" \
+NEXT_PUBLIC_SSE_BASE_URL="http://localhost:${BACKEND_PORT}" \
+    npm run dev -- --port "$FRONTEND_PORT" > /tmp/codeai-frontend.log 2>&1 &
 FRONTEND_PID=$!
 
-# Give Next.js a moment to boot
 sleep 3
 if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
-    echo -e "${RED}[FAIL]${NC} Frontend crashed. Check: /tmp/codeai-frontend.log"
+    echo -e "${RED}[FAIL]${NC} Frontend crashed. Logs: /tmp/codeai-frontend.log"
+    tail -20 /tmp/codeai-frontend.log >&2
     exit 1
 fi
 
@@ -97,13 +114,12 @@ echo ""
 echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════╗${NC}"
 echo -e "${BOLD}${CYAN}║         CODE-AI  is  running             ║${NC}"
 echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════╣${NC}"
-echo -e "${BOLD}${CYAN}║${NC}  Frontend  →  ${GREEN}http://localhost:3000${NC}      ${BOLD}${CYAN}║${NC}"
-echo -e "${BOLD}${CYAN}║${NC}  Backend   →  ${GREEN}http://localhost:${PORT}${NC}      ${BOLD}${CYAN}║${NC}"
+printf "${BOLD}${CYAN}║${NC}  Frontend  →  ${GREEN}http://localhost:%-5s${NC}     ${BOLD}${CYAN}║${NC}\n" "${FRONTEND_PORT}"
+printf "${BOLD}${CYAN}║${NC}  Backend   →  ${GREEN}http://localhost:%-5s${NC}     ${BOLD}${CYAN}║${NC}\n" "${BACKEND_PORT}"
 echo -e "${BOLD}${CYAN}║${NC}  Logs      →  ${YELLOW}/tmp/codeai-*.log${NC}         ${BOLD}${CYAN}║${NC}"
 echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════╣${NC}"
 echo -e "${BOLD}${CYAN}║${NC}  Press ${RED}Ctrl+C${NC} to stop all services       ${BOLD}${CYAN}║${NC}"
 echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
-# Keep script alive — cleanup trap fires on Ctrl+C
 wait
