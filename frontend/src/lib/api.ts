@@ -1,4 +1,4 @@
-import type { UploadResponse, HealthResponse } from "@/types/api";
+import type { UploadResponse, HealthResponse, ModelsResponse } from "@/types/api";
 
 const API_BASE = "/api";
 
@@ -25,6 +25,12 @@ export async function checkHealth(): Promise<HealthResponse> {
     throw new Error(`Health check failed: ${res.status}`);
   }
 
+  return res.json();
+}
+
+export async function getAvailableModels(): Promise<ModelsResponse> {
+  const res = await fetch(`${API_BASE}/models`);
+  if (!res.ok) throw new Error(`Failed to fetch models: ${res.status}`);
   return res.json();
 }
 

@@ -22,6 +22,7 @@ import { useAnalysisStore } from "@/stores/analysis-store";
 import { useSSE } from "@/hooks/use-sse";
 import { useHealthCheck } from "@/hooks/use-health-check";
 import { uploadFile } from "@/lib/api";
+import { ModelSelector } from "@/components/layout/model-selector";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -239,6 +240,11 @@ export function Toolbar() {
         onCheckedChange={setPdfRequested}
         className="scale-75"
       />
+
+      <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
+
+      {/* Model selector */}
+      <ModelSelector />
 
       <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
 

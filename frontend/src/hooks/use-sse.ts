@@ -3,6 +3,7 @@
 import { useRef, useCallback } from "react";
 import { SSEParser } from "@/lib/sse-parser";
 import { useAnalysisStore } from "@/stores/analysis-store";
+import { useModelStore } from "@/stores/model-store";
 import type { SSEEvent } from "@/types/events";
 import type { FunctionResult } from "@/types/report";
 import { toast } from "sonner";
@@ -117,6 +118,8 @@ export function useSSE() {
     ]
   );
 
+  const getOverrides = useModelStore((s) => s.getOverrides);
+
   const analyze = useCallback(
     async (jobId: string, code: string, pdf: boolean, description?: string) => {
       // Abort any previous stream
@@ -147,6 +150,7 @@ export function useSSE() {
             code,
             pdf,
             ...(description ? { description } : {}),
+            ...(Object.keys(getOverrides()).length > 0 ? { models: getOverrides() } : {}),
           }),
           signal: controller.signal,
         });

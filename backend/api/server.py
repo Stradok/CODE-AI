@@ -120,6 +120,24 @@ async def health() -> dict:
     }
 
 
+@app.get("/models")
+async def list_models() -> dict:
+    """Return all models available in the local Ollama instance."""
+    try:
+        import ollama
+
+        result = ollama.list()
+        # Support both ollama-python >= 0.4 (ListResponse object) and older dict API
+        if hasattr(result, "models"):
+            names = sorted(m.model for m in result.models if m.model)
+        else:
+            names = sorted(m["name"] for m in result.get("models", []) if m.get("name"))
+        return {"models": names}
+    except Exception as exc:
+        logger.warning("Could not list Ollama models: {}", exc)
+        return {"models": []}
+
+
 # ---------------------------------------------------------------------------
 # Upload
 # ---------------------------------------------------------------------------
@@ -176,6 +194,8 @@ class AnalyzeRequest(BaseModel):
     """Optional description of the code's purpose. Generated automatically if omitted."""
     pdf: bool = False
     """Set true to also generate a PDF report."""
+    models: dict[str, str] | None = None
+    """Per-stage model overrides. Keys: preprocessing, rag_analyzer, validator, recommender, reporter."""
 
 
 @app.post("/analyze/{job_id}")
@@ -207,7 +227,7 @@ async def analyze(job_id: str, req: AnalyzeRequest) -> StreamingResponse:
     def run() -> None:
         with logger.contextualize(job_id=job_id[:8]):
             try:
-                _run_pipeline(job_id, code, req.description, req.pdf, emit)
+                _run_pipeline(job_id, code, req.description, req.pdf, emit, req.models)
             except Exception as exc:
                 logger.exception("Unhandled error in pipeline thread: {}", exc)
                 emit("error", {"message": str(exc), "stage": "pipeline"})
@@ -292,7 +312,12 @@ async def get_pdf_report(job_id: str) -> Response:
 
 
 def _run_pipeline(
-    job_id: str, code: str, description: str | None, generate_pdf: bool, emit
+    job_id: str,
+    code: str,
+    description: str | None,
+    generate_pdf: bool,
+    emit,
+    model_overrides: dict[str, str] | None = None,
 ) -> None:
     """
     Execute the full pipeline synchronously.
@@ -312,6 +337,13 @@ def _run_pipeline(
     # Own config copy per job — eliminates shared-state mutations
     cfg = copy.deepcopy(load_config())
     MODELS = cfg["models"]
+
+    # Apply per-stage model overrides from the request
+    if model_overrides:
+        for stage, model in model_overrides.items():
+            if model and stage in MODELS:
+                MODELS[stage] = model
+                logger.info("Model override: {}={}", stage, model)
     SETTINGS = cfg["settings"]
     max_attempts = SETTINGS.get("max_remediation_attempts", 3)
 
