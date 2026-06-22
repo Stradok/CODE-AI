@@ -35,9 +35,10 @@ settings:
   max_remediation_attempts: 3
   temperature: 0.0          # 0.0 for deterministic JSON output
   device: "auto"            # "auto" detects cuda/mps/cpu; override with "cuda", "mps", or "cpu"
-  llm_timeout: 120          # seconds per LLM call (was 300 — reduced to fail fast)
+  llm_timeout: 120          # seconds per LLM call before cancelling and raising LLMTimeoutError
   top_k_cves: 6             # number of CVEs to retrieve per query
   min_cve_similarity: 0.25  # ignore CVEs below this cosine similarity (prevents hallucinations on clean code)
+  # num_predict caps are set per-function in ollama_client.py (chat=4096, generate=1024)
   log_level: "INFO"         # DEBUG, INFO, WARNING, ERROR
 
 # OpenAI GPT fallback — set OPENAI_API_KEY env var instead of putting the key here

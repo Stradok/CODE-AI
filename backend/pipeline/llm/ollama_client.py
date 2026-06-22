@@ -1,11 +1,13 @@
 """
-pipeline/llm/ollama_client.py - Ollama LLM client with timeout support.
+pipeline/llm/ollama_client.py - Ollama LLM client with timeout and cancellation support.
 
-Both ollama_chat and ollama_generate wrap the Ollama call in a threading.Thread
-with thread.join(timeout) because the Ollama Python client has no native timeout.
+Uses the Ollama streaming API so that a timed-out request is actually cancelled
+(HTTP connection closed) instead of leaving a zombie request running in Ollama.
+The timeout is read from config.yaml settings.llm_timeout (default 120s).
 """
 
-import threading
+import time
+from contextlib import suppress
 
 from loguru import logger
 
@@ -18,6 +20,14 @@ class OllamaError(Exception):
 
 class LLMTimeoutError(OllamaError):
     """Raised when an LLM call exceeds the timeout."""
+
+
+def _cfg_timeout() -> int:
+    return int(get_settings().get("llm_timeout", 120))
+
+
+def _cfg_temperature() -> float:
+    return float(get_settings().get("temperature", 0.0))
 
 
 def check_ollama() -> bool:
@@ -33,48 +43,70 @@ def check_ollama() -> bool:
         return False
 
 
+def _chunk_content(chunk) -> str:
+    """Extract text from a streaming chat chunk (supports both old dict and new object API)."""
+    if isinstance(chunk, dict):
+        return chunk.get("message", {}).get("content", "")
+    msg = getattr(chunk, "message", None)
+    return getattr(msg, "content", "") or ""
+
+
+def _chunk_response(chunk) -> str:
+    """Extract text from a streaming generate chunk."""
+    if isinstance(chunk, dict):
+        return chunk.get("response", "")
+    return getattr(chunk, "response", "") or ""
+
+
 def ollama_chat(
     model: str,
     prompt: str,
     *,
     temperature: float | None = None,
-    timeout: int = 300,
+    timeout: int | None = None,
+    num_predict: int = 4096,
 ) -> str:
     """
-    Send a chat request to Ollama with optional timeout.
+    Send a chat request to Ollama via streaming.
 
-    Returns the raw text content from the model response.
-    Raises OllamaError or LLMTimeoutError on failure.
+    Streaming lets us close the HTTP connection the moment the deadline passes,
+    which tells Ollama to stop generating — no zombie requests accumulating.
+    timeout defaults to settings.llm_timeout (config.yaml).
     """
     import ollama
 
     if temperature is None:
-        temperature = get_settings().get("temperature", 0.0)
+        temperature = _cfg_temperature()
+    if timeout is None:
+        timeout = _cfg_timeout()
 
-    result: dict = {}
-    exception_holder: list = []
+    logger.debug("[LLM] ollama_chat model='{}' timeout={}s num_predict={}", model, timeout, num_predict)
 
-    def _call():
-        try:
-            resp = ollama.chat(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": temperature},
-            )
-            result["response"] = resp
-        except Exception as exc:
-            exception_holder.append(exc)
+    stream = ollama.chat(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        options={"temperature": temperature, "num_predict": num_predict},
+        stream=True,
+    )
 
-    thread = threading.Thread(target=_call, daemon=True)
-    thread.start()
-    thread.join(timeout)
+    chunks: list[str] = []
+    deadline = time.monotonic() + timeout
 
-    if thread.is_alive():
-        raise LLMTimeoutError(f"LLM call to '{model}' timed out after {timeout}s")
-    if exception_holder:
-        raise OllamaError(f"Ollama chat error: {exception_holder[0]}") from exception_holder[0]
+    try:
+        for chunk in stream:
+            if time.monotonic() > deadline:
+                raise LLMTimeoutError(f"LLM call to '{model}' timed out after {timeout}s (continuing...)")
+            chunks.append(_chunk_content(chunk))
+    except LLMTimeoutError:
+        raise
+    except Exception as exc:
+        raise OllamaError(f"Ollama chat error: {exc}") from exc
+    finally:
+        # Close the HTTP stream → Ollama stops generating immediately
+        with suppress(Exception):
+            stream.close()
 
-    return result["response"]["message"]["content"]
+    return "".join(chunks)
 
 
 def ollama_generate(
@@ -82,39 +114,45 @@ def ollama_generate(
     prompt: str,
     *,
     temperature: float | None = None,
-    timeout: int = 300,
+    timeout: int | None = None,
+    num_predict: int = 1024,
 ) -> str:
     """
-    Send a generate request to Ollama with optional timeout.
+    Send a generate request to Ollama via streaming.
 
-    Returns the raw text content from the model response.
+    Same cancellation semantics as ollama_chat.
+    num_predict is lower here (preprocessing descriptions don't need to be long).
     """
     import ollama
 
     if temperature is None:
-        temperature = get_settings().get("temperature", 0.0)
+        temperature = _cfg_temperature()
+    if timeout is None:
+        timeout = _cfg_timeout()
 
-    result: dict = {}
-    exception_holder: list = []
+    logger.debug("[LLM] ollama_generate model='{}' timeout={}s num_predict={}", model, timeout, num_predict)
 
-    def _call():
-        try:
-            resp = ollama.generate(
-                model=model,
-                prompt=prompt,
-                options={"temperature": temperature},
-            )
-            result["response"] = resp
-        except Exception as exc:
-            exception_holder.append(exc)
+    stream = ollama.generate(
+        model=model,
+        prompt=prompt,
+        options={"temperature": temperature, "num_predict": num_predict},
+        stream=True,
+    )
 
-    thread = threading.Thread(target=_call, daemon=True)
-    thread.start()
-    thread.join(timeout)
+    chunks: list[str] = []
+    deadline = time.monotonic() + timeout
 
-    if thread.is_alive():
-        raise LLMTimeoutError(f"LLM generate call to '{model}' timed out after {timeout}s")
-    if exception_holder:
-        raise OllamaError(f"Ollama generate error: {exception_holder[0]}") from exception_holder[0]
+    try:
+        for chunk in stream:
+            if time.monotonic() > deadline:
+                raise LLMTimeoutError(f"LLM generate call to '{model}' timed out after {timeout}s (continuing...)")
+            chunks.append(_chunk_response(chunk))
+    except LLMTimeoutError:
+        raise
+    except Exception as exc:
+        raise OllamaError(f"Ollama generate error: {exc}") from exc
+    finally:
+        with suppress(Exception):
+            stream.close()
 
-    return result["response"].get("response", "")
+    return "".join(chunks)
