@@ -38,7 +38,8 @@ settings:
   llm_timeout: 120          # seconds per LLM call before cancelling and raising LLMTimeoutError
   top_k_cves: 6             # number of CVEs to retrieve per query
   min_cve_similarity: 0.25  # ignore CVEs below this cosine similarity (prevents hallucinations on clean code)
-  # num_predict caps are set per-function in ollama_client.py (chat=4096, generate=1024)
+  max_concurrent_llm_calls: 1  # GPU semaphore — raise only if VRAM can hold multiple models simultaneously
+  model_keep_alive: 60      # seconds Ollama keeps a model loaded after the last call (frees VRAM between stages)
   log_level: "INFO"         # DEBUG, INFO, WARNING, ERROR
 
 # OpenAI GPT fallback — set OPENAI_API_KEY env var instead of putting the key here
