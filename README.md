@@ -3,15 +3,17 @@
 <div align="center">
 
 <a href="https://github.com/Stradok/CODE-AI">
-  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=20&duration=3000&pause=1200&color=0EA5E9&center=true&vCenter=true&multiline=true&repeat=true&width=750&height=70&lines=Local+LLMs+%C2%B7+RAG+over+NVD+%C2%B7+6-Stage+Pipeline;Zero+cloud.+Zero+leaks.+Verified+fixes." alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=20&duration=3000&pause=1200&color=0EA5E9&center=true&vCenter=true&multiline=true&repeat=true&width=750&height=70&lines=Local+LLMs+%C2%B7+RAG+over+NVD+%C2%B7+6-Stage+Pipeline;Your+GPU+or+your+API+key+%E2%80%94+your+choice." alt="Typing SVG" />
 </a>
 
 <br/>
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![Ollama](https://img.shields.io/badge/Ollama-Local_LLMs-555555?style=for-the-badge&logo=ollama&logoColor=white)
+![OpenRouter](https://img.shields.io/badge/OpenRouter-Cloud_LLMs-6C63FF?style=for-the-badge&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)
 [![CI](https://github.com/Stradok/CODE-AI/actions/workflows/ci.yml/badge.svg?style=for-the-badge)](https://github.com/Stradok/CODE-AI/actions)
 
@@ -21,7 +23,7 @@
 
 <br/><br/>
 
-> **CODE-AI** is a research-grade security pipeline that scans Python source code for CVE vulnerabilities using RAG over the NVD database, validates findings with a second LLM to suppress false positives, scores risk, and generates verified patches — all running **100% locally** with no data leaving your machine.
+> **CODE-AI** is a research-grade security pipeline that scans Python source code for CVE vulnerabilities using RAG over the NVD database, validates findings with a second LLM to suppress false positives, scores risk, and generates verified patches. Run it fully locally on your own GPU, or connect your own cloud API key — your choice, switchable at runtime from the UI.
 
 </div>
 
@@ -48,6 +50,8 @@
 │  │  JSON + PDF     │     │  re-runs pipeline│     │  Critical/High/ │           │
 │  └─────────────────┘     └─────────────────┘     │  Medium/Low     │           │
 │                                                   └─────────────────┘           │
+│                                                                                 │
+│  All functions in a file run in parallel (stages 2–6) for maximum speed.       │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -63,45 +67,40 @@ graph TB
 subgraph UI["Web UI — localhost:3000"]
     A["Monaco Editor"] --> B["Analysis Panel"]
     B --> C["Results + PDF"]
+    D["Backend Selector\n(Local / Cloud / Auto)"]
 end
 
 subgraph API["FastAPI Server — localhost:8000"]
-    D["/upload"] --> E["/analyze SSE stream"]
-    E --> F["Job Registry · TTL 1h"]
+    E["/upload"] --> F["/analyze SSE stream"]
+    F --> G["Job Registry · TTL 1h"]
 end
 
-subgraph Pipeline["6-Stage Pipeline"]
-    G["Preprocessing"] --> H["RAG Analyzer"]
-    H --> I["Validator"]
-    I --> J["Risk Scorer"]
-    J --> K["Recommender"]
-    K --> L["Reporter"]
-    K -->|verify fix| H
+subgraph Pipeline["6-Stage Pipeline (parallel per-function)"]
+    H["Preprocessing"] --> I["RAG Analyzer"]
+    I --> J["Validator"]
+    J --> K["Risk Scorer"]
+    K --> L["Recommender"]
+    L --> M["Reporter"]
+    L -->|verify fix| I
 end
 
-subgraph Inference["Local Inference"]
-    M["Ollama"]
-    N["deepseek-r1:8b"]
-    O["llama3.1:8b"]
-    P["qwen2.5-coder:7b"]
-    Q["mistral:7b"]
-    M --> N
-    M --> O
-    M --> P
-    M --> Q
+subgraph Backends["LLM Backends (switchable per request)"]
+    N["Ollama (local GPU)"]
+    O["OpenRouter (cloud API)"]
 end
 
 subgraph Data["NVD Knowledge Base"]
-    R["nvd_cves_min.jsonl"]
-    S["cve_embeddings_local.npz"]
-    T["all-MiniLM-L6-v2"]
+    P["nvd_cves_min.jsonl"]
+    Q["cve_embeddings_local.npz"]
+    R["all-MiniLM-L6-v2"]
 end
 
-UI -->|REST + SSE| API
+UI -->|REST + SSE + backend choice| API
 API --> Pipeline
-Pipeline --> Inference
-H --> Data
+Pipeline --> Backends
+I --> Data
 ```
+
 ---
 
 ## Features
@@ -111,7 +110,7 @@ H --> Data
 <td width="50%">
 
 **Security**
-- RAG retrieval over the full NVD CVE database
+- RAG retrieval over the full NVD CVE database (168,960 CVEs)
 - Second-model validation to eliminate false positives
 - Verified patch generation — re-scanned before acceptance
 - Risk scoring with Critical / High / Medium / Low priority
@@ -119,22 +118,22 @@ H --> Data
 </td>
 <td width="50%">
 
-**Privacy**
-- 100% local inference via Ollama
-- No code, no results, no keys leave your machine
-- CORS locked to `localhost` by default
-- API key handled via env var only — never in config files
+**Flexible LLM Backend**
+- **Local (Ollama):** 100% private, no API costs, requires a GPU
+- **Cloud (OpenRouter):** bring your own API key, no GPU needed
+- Switchable at runtime from the toolbar — no server restart
+- Per-stage API keys for parallel rate limits (cloud mode)
 
 </td>
 </tr>
 <tr>
 <td>
 
-**Developer Experience**
-- One-command install: `make setup`
-- One-command run: `make start`
-- Real-time SSE streaming in the web UI
-- Monaco Editor (VS Code engine) embedded in browser
+**Performance**
+- All functions in a file processed in parallel (stages 2–6)
+- GPU semaphore prevents VRAM thrashing in local mode
+- Streaming with deadline-based cancellation — no zombie requests
+- 120 s per-call timeout (configurable), 1 retry on timeout
 
 </td>
 <td>
@@ -143,6 +142,7 @@ H --> Data
 - Swap any LLM by editing one line in `config.yaml`
 - Stage-as-LLM pattern — models are config, not code
 - FastAPI server + CLI share the same pipeline core
+- Docker Compose for one-command deployment
 - PDF + JSON reports generated per job
 
 </td>
@@ -153,7 +153,34 @@ H --> Data
 
 ## Quick Start
 
-> **Requirements:** Linux · [uv](https://docs.astral.sh/uv/) · Node.js 18+ · ~25 GB free disk (models + data)
+### Option A — Docker (recommended)
+
+> **Requirements:** Docker + Docker Compose · ~5 GB disk (images) · CVE data files (see below)
+
+```bash
+# 1. Clone
+git clone https://github.com/Stradok/CODE-AI.git
+cd CODE-AI
+
+# 2. Set up environment
+cp .env.example .env
+# Edit .env — add OPENROUTER_API_KEY for cloud mode,
+# or set LLM_BACKEND=ollama for local GPU (Ollama must be reachable)
+
+# 3. Add CVE data files to backend/pipeline/data/  ← see Data section below
+
+# 4. Build and run
+docker compose up --build
+
+# Frontend → http://localhost:3000
+# Backend  → http://localhost:8000
+```
+
+The embedding model (`all-MiniLM-L6-v2`, ~90 MB) is downloaded automatically on first start.
+
+### Option B — Local development
+
+> **Requirements:** Linux/macOS · [uv](https://docs.astral.sh/uv/) · Node.js 20+ · ~25 GB free disk (models + data)
 
 ```bash
 # 1. Clone
@@ -184,6 +211,33 @@ These are generated from the NVD JSON feeds. See [`backend/README.md`](backend/R
 
 ---
 
+## Choosing Your LLM Backend
+
+The **Backend** button in the toolbar opens a panel with three options:
+
+| Option | When to use | What you need |
+|---|---|---|
+| **Have the hardware? Try local LLMs** | Full privacy, no API costs | Ollama running with models pulled |
+| **Have your own API key? Use here** | No GPU, or faster parallel inference | An OpenRouter API key |
+| **Use server default** | Shared/managed deployment | Nothing — defers to server config |
+
+The choice is saved in your browser and sent with each analysis request. The server never stores your API key.
+
+### OpenRouter parallel rate limits
+
+When using cloud mode, each pipeline stage can use a separate API key — giving each its own rate-limit bucket so all stages run concurrently without throttling:
+
+```
+OPENROUTER_API_KEY_REASONING=sk-or-...    # deepseek (preprocessing + RAG)
+OPENROUTER_API_KEY_CODING=sk-or-...       # qwen-coder (recommender + verifier)
+OPENROUTER_API_KEY_INSTRUCTION=sk-or-...  # llama (validator)
+OPENROUTER_API_KEY_SUMMARIZE=sk-or-...    # mistral (reporter)
+```
+
+Create up to four free accounts at [openrouter.ai](https://openrouter.ai) for maximum throughput. One master key also works.
+
+---
+
 ## All Make Targets
 
 ```
@@ -203,17 +257,43 @@ make start-frontend  Frontend dev server only
 
 ## Configuration
 
-All pipeline knobs live in `backend/config.yaml`. No code change needed to swap models.
+All pipeline knobs live in `backend/config.yaml`. No code change needed to swap models or tune settings.
+
+### Model assignments
+
+| Stage | Default model | Role |
+|---|---|---|
+| `preprocessing` | `deepseek-r1:8b` | Chain-of-thought security description |
+| `rag_analyzer` | `deepseek-r1:8b` | Complex CVE pattern matching |
+| `validator` | `llama3.1:8b` | Fast YES/NO false-positive check |
+| `recommender` | `qwen2.5-coder:7b` | Secure patch generation |
+| `reporter` | `mistral:7b` | Human-readable report narration |
+| `verifier` | `qwen2.5-coder:7b` | Post-fix vulnerability re-check |
+
+### Key settings
 
 | Key | Default | Description |
 |---|---|---|
-| `models.rag_analyzer` | `deepseek-r1:8b` | Primary CVE detection model |
-| `models.validator` | `llama3.1:8b` | False-positive suppression model |
-| `models.recommender` | `qwen2.5-coder:7b` | Patch generation model |
-| `models.reporter` | `mistral:7b` | Report narration model |
-| `settings.device` | `auto` | `auto` · `cpu` · `cuda` |
 | `settings.llm_timeout` | `120` | Per-call timeout in seconds |
-| `settings.top_k_cves` | `5` | CVEs retrieved per function via RAG |
+| `settings.max_concurrent_llm_calls` | `1` | GPU semaphore (Ollama mode) |
+| `settings.model_keep_alive` | `60` | Seconds before Ollama unloads idle model |
+| `settings.max_function_workers` | `4` | Parallel threads per job (raise to 8+ for cloud) |
+| `settings.top_k_cves` | `6` | CVEs retrieved per function via RAG |
+| `settings.min_cve_similarity` | `0.25` | Cosine similarity cutoff |
+| `settings.device` | `auto` | `auto` · `cpu` · `cuda` |
+
+### OpenRouter model mapping
+
+```yaml
+openrouter:
+  model_map:
+    "deepseek-r1:8b":      "deepseek/deepseek-r1-distill-llama-8b"
+    "llama3.1:8b":         "meta-llama/llama-3.1-8b-instruct"
+    "qwen2.5-coder:7b":    "qwen/qwen-2.5-coder-7b-instruct"
+    "mistral:7b":          "mistralai/mistral-7b-instruct"
+```
+
+Replace any value with a better OpenRouter model without touching pipeline code.
 
 ---
 
@@ -221,41 +301,61 @@ All pipeline knobs live in `backend/config.yaml`. No code change needed to swap 
 
 ```
 CODE-AI/
-├── backend/                        FastAPI server + pipeline
+├── docker-compose.yml                  One-command deployment (backend + frontend)
+├── .env.example                        Environment variable reference
+├── Makefile                            Root orchestrator
+│
+├── backend/                            FastAPI server + pipeline
+│   ├── Dockerfile                      Python 3.14 production image
+│   ├── docker-entrypoint.sh            Downloads embedding model on first start
 │   ├── api/
-│   │   ├── server.py               FastAPI app · SSE streaming · job registry
-│   │   └── cli/main.py             Interactive CLI runner
+│   │   ├── server.py                   FastAPI app · SSE streaming · job registry
+│   │   └── cli/main.py                 Interactive CLI runner
 │   ├── pipeline/
-│   │   ├── stages/                 6 pipeline stage modules
-│   │   ├── llm/                    ollama_client · retry · schemas · json_parsing
-│   │   ├── reporting/              JSON + PDF writers
-│   │   ├── config/                 YAML loader (singleton)
-│   │   └── data/                   CVE embeddings + NVD JSONL (git-ignored)
+│   │   ├── stages/                     6 pipeline stage modules
+│   │   ├── llm/
+│   │   │   ├── ollama_client.py        Local GPU backend (streaming + GPU semaphore)
+│   │   │   ├── openrouter_client.py    Cloud backend (OpenRouter / OpenAI-compatible)
+│   │   │   ├── context.py              Per-request backend/key via Python contextvars
+│   │   │   ├── retry.py                Retry wrapper (1 retry for timeouts, 3 for parse)
+│   │   │   ├── schemas.py              Pydantic output schemas per stage
+│   │   │   └── json_parsing.py         Strip <think> tags, extract JSON
+│   │   ├── reporting/                  JSON + PDF writers
+│   │   ├── config/                     YAML loader (singleton)
+│   │   └── data/                       CVE embeddings + NVD JSONL (git-ignored)
 │   ├── tests/
-│   │   └── integration/            simulate_pipeline · evaluator
-│   ├── scripts/
-│   │   ├── setup.sh                One-command dependency installer
-│   │   └── start.sh                Server launcher
-│   ├── config.yaml                 All tunable knobs
+│   │   └── integration/                simulate_pipeline · evaluator
+│   ├── config.yaml                     All tunable knobs
 │   └── pyproject.toml
 │
-├── frontend/                       Next.js 15 web UI
+├── frontend/                           Next.js 16 web UI
+│   ├── Dockerfile                      Multi-stage Node 20 build
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── layout/             toolbar · ide-layout · status-bar
-│   │   │   ├── analysis/           stage-progress · event-feed · function-list
-│   │   │   ├── results/            vulnerability-card · severity-badge · fix-badge
-│   │   │   └── reports/            report-summary · report-download
-│   │   ├── stores/                 Zustand: editor-store · analysis-store
-│   │   ├── hooks/                  use-sse · use-health-check
-│   │   └── types/                  events · report
+│   │   │   ├── layout/
+│   │   │   │   ├── toolbar.tsx         Upload · Analyze · Models · Backend · Status
+│   │   │   │   ├── model-selector.tsx  Per-stage model override panel
+│   │   │   │   └── backend-selector.tsx  Local / Cloud / Auto backend choice
+│   │   │   ├── analysis/               stage-progress · event-feed · function-list
+│   │   │   ├── results/                vulnerability-card · severity-badge · fix-badge
+│   │   │   └── reports/                report-summary · report-download
+│   │   ├── stores/
+│   │   │   ├── editor-store.ts         File + code state
+│   │   │   ├── analysis-store.ts       Pipeline run state + SSE events
+│   │   │   ├── model-store.ts          Per-stage model overrides
+│   │   │   └── backend-store.ts        Backend choice + API key (persisted to localStorage)
+│   │   ├── hooks/
+│   │   │   ├── use-sse.ts              SSE stream + event routing
+│   │   │   └── use-health-check.ts     Backend liveness polling
+│   │   └── types/                      events · report · api
 │   └── package.json
 │
 ├── .github/
-│   ├── workflows/ci.yml            Lint + typecheck + simulate_pipeline
+│   ├── workflows/ci.yml                Lint + typecheck + simulate_pipeline
 │   └── ISSUE_TEMPLATE/
-├── Makefile                        Root orchestrator
-└── README.md
+└── logs/                               Session logs
+    ├── 2026-06-22.md                   RAG fix · timeout overhaul · GPU semaphore
+    └── 2026-06-26.md                   Docker · OpenRouter · backend selector · parallel functions
 ```
 
 ---
@@ -266,14 +366,16 @@ CODE-AI/
 
 | Layer | Technology |
 |---|---|
-| LLM Inference | Ollama · deepseek-r1:8b · llama3.1:8b · qwen2.5-coder:7b · mistral:7b |
+| LLM Inference (local) | Ollama · deepseek-r1:8b · llama3.1:8b · qwen2.5-coder:7b · mistral:7b |
+| LLM Inference (cloud) | OpenRouter (OpenAI-compatible API) |
 | Embeddings | sentence-transformers · all-MiniLM-L6-v2 |
-| CVE Knowledge Base | NVD (National Vulnerability Database) |
+| CVE Knowledge Base | NVD (National Vulnerability Database) · 168,960 CVEs |
 | Backend | Python 3.14 · FastAPI · Pydantic · LangChain · uvicorn |
 | Package Manager | [uv](https://docs.astral.sh/uv/) |
-| Frontend | Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui |
+| Containerisation | Docker · Docker Compose |
+| Frontend | Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui |
 | Editor Engine | Monaco Editor (powers VS Code) |
-| State Management | Zustand |
+| State Management | Zustand (with localStorage persistence) |
 | CI | GitHub Actions |
 
 </div>
@@ -297,7 +399,7 @@ CODE-AI/
 </td>
 
 <td align="center" width="200">
-  <img src="https://ui-avatars.com/api/?name=Abdullah&background=6366f1&color=fff&size=80&bold=true" width="80" style="border-radius:50%"/><br/>
+  <img src="https://ui-avatars.com/api/?name=Jawad&background=6366f1&color=fff&size=80&bold=true" width="80" style="border-radius:50%"/><br/>
   <b>Dr Jawad</b><br/>
   <sub>Supervisor</sub>
 </td>
@@ -305,7 +407,7 @@ CODE-AI/
 <td align="center" width="200">
   <img src="https://ui-avatars.com/api/?name=Abdullah&background=6366f1&color=fff&size=80&bold=true" width="80" style="border-radius:50%"/><br/>
   <b>Mr Abdullah</b><br/>
-  <sub>Co-Supervisor&<br/>Quality Assurance & Testing</sub>
+  <sub>Co-Supervisor &<br/>Quality Assurance & Testing</sub>
 </td>
 
 <td align="center" width="200">

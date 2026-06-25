@@ -139,15 +139,21 @@ def ollama_chat(
     num_predict: int = 4096,
 ) -> str:
     """
-    Send a chat request to Ollama.
+    Send a chat request to the configured LLM backend.
 
-    Acquires the GPU semaphore before starting and holds it until the stream
-    is fully consumed or cancelled.  This guarantees at most
-    ``max_concurrent_llm_calls`` models are active on the GPU at any time.
-
-    On timeout the HTTP connection is closed (Ollama stops generating) and
-    LLMTimeoutError is raised.  No zombie threads or zombie Ollama requests.
+    When LLM_BACKEND=openrouter the call is routed to OpenRouter (no GPU
+    needed).  Otherwise it hits the local Ollama instance, acquires the GPU
+    semaphore, and streams with deadline-based cancellation.
     """
+    import os
+    from pipeline.llm.context import REQUEST_BACKEND
+    _backend = REQUEST_BACKEND.get() or os.environ.get("LLM_BACKEND", "ollama")
+    if _backend.lower() == "openrouter":
+        from pipeline.llm.openrouter_client import openrouter_chat
+        return openrouter_chat(
+            model, prompt, temperature=temperature, timeout=timeout, num_predict=num_predict
+        )
+
     import ollama
 
     if temperature is None:
@@ -209,11 +215,21 @@ def ollama_generate(
     num_predict: int = 1024,
 ) -> str:
     """
-    Send a generate request to Ollama.
+    Send a generate request to the configured LLM backend.
 
-    Same GPU serialisation and cancellation semantics as ollama_chat.
+    Routes to OpenRouter when LLM_BACKEND=openrouter; otherwise uses local
+    Ollama with GPU serialisation and deadline-based cancellation.
     num_predict is lower here — preprocessing descriptions are short.
     """
+    import os
+    from pipeline.llm.context import REQUEST_BACKEND
+    _backend = REQUEST_BACKEND.get() or os.environ.get("LLM_BACKEND", "ollama")
+    if _backend.lower() == "openrouter":
+        from pipeline.llm.openrouter_client import openrouter_generate
+        return openrouter_generate(
+            model, prompt, temperature=temperature, timeout=timeout, num_predict=num_predict
+        )
+
     import ollama
 
     if temperature is None:

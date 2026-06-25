@@ -6,6 +6,7 @@ import { checkHealth } from "@/lib/api";
 interface HealthState {
   status: string;
   ollama: boolean;
+  backend: string;
   error: boolean;
   loading: boolean;
 }
@@ -14,6 +15,7 @@ export function useHealthCheck(intervalMs = 15000): HealthState {
   const [state, setState] = useState<HealthState>({
     status: "",
     ollama: false,
+    backend: "ollama",
     error: false,
     loading: true,
   });
@@ -24,6 +26,7 @@ export function useHealthCheck(intervalMs = 15000): HealthState {
       setState({
         status: data.status,
         ollama: data.ollama,
+        backend: data.backend ?? "ollama",
         error: false,
         loading: false,
       });

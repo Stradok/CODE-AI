@@ -23,11 +23,19 @@ import { useSSE } from "@/hooks/use-sse";
 import { useHealthCheck } from "@/hooks/use-health-check";
 import { uploadFile } from "@/lib/api";
 import { ModelSelector } from "@/components/layout/model-selector";
+import { BackendSelector } from "@/components/layout/backend-selector";
+import { useBackendStore } from "@/stores/backend-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 function ConnectionPill() {
   const health = useHealthCheck();
+  const backend = useBackendStore((s) => s.backend);
+  const masterKey = useBackendStore((s) => s.masterKey);
+
+  // Effective backend: user choice or server default
+  const effective =
+    backend === "auto" ? (health.backend ?? "ollama") : backend;
 
   if (health.loading) {
     return (
@@ -52,6 +60,30 @@ function ConnectionPill() {
     );
   }
 
+  // Cloud mode
+  if (effective === "openrouter") {
+    if (!masterKey.trim()) {
+      return (
+        <Tooltip>
+          <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEF3C7] px-2.5 py-1 shadow-[inset_3px_3px_6px_rgba(214,158,46,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
+            <AlertTriangle className="h-3 w-3 text-[#D69E2E]" />
+            <span className="text-[10px] text-[#D69E2E]">No API key</span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Enter your OpenRouter key in the Backend selector
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    return (
+      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-2.5 py-1 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
+        <Wifi className="h-3 w-3 text-[#6C63FF]" />
+        <span className="text-[10px] text-[#6C63FF]">Cloud API</span>
+      </div>
+    );
+  }
+
+  // Local Ollama mode
   if (!health.ollama) {
     return (
       <Tooltip>
@@ -245,6 +277,11 @@ export function Toolbar() {
 
       {/* Model selector */}
       <ModelSelector />
+
+      <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
+
+      {/* Backend selector */}
+      <BackendSelector />
 
       <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
 

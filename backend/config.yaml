@@ -40,9 +40,33 @@ settings:
   min_cve_similarity: 0.25  # ignore CVEs below this cosine similarity (prevents hallucinations on clean code)
   max_concurrent_llm_calls: 1  # GPU semaphore — raise only if VRAM can hold multiple models simultaneously
   model_keep_alive: 60      # seconds Ollama keeps a model loaded after the last call (frees VRAM between stages)
+  max_function_workers: 4   # parallel threads for per-function pipeline (RAG→validate→recommend); raise to 8+ for OpenRouter
   log_level: "INFO"         # DEBUG, INFO, WARNING, ERROR
 
 # OpenAI GPT fallback — set OPENAI_API_KEY env var instead of putting the key here
+
+# ---------------------------------------------------------------------------
+# OpenRouter cloud backend (LLM_BACKEND=openrouter)
+# ---------------------------------------------------------------------------
+# model_map translates Ollama model names → OpenRouter model IDs.
+# If a model name already contains "/" it is used unchanged.
+#
+# Free-tier options (add :free suffix — slower, rate-limited):
+#   deepseek/deepseek-r1-distill-llama-8b:free
+#   meta-llama/llama-3.1-8b-instruct:free
+#   mistralai/mistral-7b-instruct:free
+#
+# Paid options (faster, better quality — recommended for production):
+#   deepseek/deepseek-r1              ($0.55/M tokens  — full R1 reasoning)
+#   meta-llama/llama-3.3-70b-instruct ($0.39/M tokens  — strong instruction following)
+#   qwen/qwen-2.5-coder-32b-instruct  ($0.07/M tokens  — best open coding model)
+
+openrouter:
+  model_map:
+    "deepseek-r1:8b":      "deepseek/deepseek-r1-distill-llama-8b"
+    "llama3.1:8b":         "meta-llama/llama-3.1-8b-instruct"
+    "qwen2.5-coder:7b":    "qwen/qwen-2.5-coder-7b-instruct"
+    "mistral:7b":          "mistralai/mistral-7b-instruct"
 
 paths:
   cve_embeddings: "pipeline/data/cve_embeddings_local.npz"

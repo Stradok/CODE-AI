@@ -17,9 +17,10 @@ import asyncio
 import copy
 import json
 import os
+import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -28,7 +29,7 @@ from fastapi.responses import Response, StreamingResponse
 from loguru import logger
 from pydantic import BaseModel
 
-from pipeline.config.loader import load_config
+from pipeline.config.loader import get_settings, load_config
 from pipeline.llm.ollama_client import check_ollama
 from pipeline.observability.logging import setup_logging
 from pipeline.storage import FileStore
@@ -112,11 +113,13 @@ def _evict_stale_jobs() -> None:
 
 @app.get("/health")
 async def health() -> dict:
-    """Return server liveness and Ollama reachability."""
-    ollama_ok = check_ollama()
+    """Return server liveness, Ollama reachability, and active backend."""
+    server_backend = os.environ.get("LLM_BACKEND", "ollama")
+    ollama_ok = check_ollama() if server_backend != "openrouter" else False
     return {
-        "status": "ok" if ollama_ok else "degraded",
+        "status": "ok",
         "ollama": ollama_ok,
+        "backend": server_backend,
     }
 
 
@@ -196,6 +199,10 @@ class AnalyzeRequest(BaseModel):
     """Set true to also generate a PDF report."""
     models: dict[str, str] | None = None
     """Per-stage model overrides. Keys: preprocessing, rag_analyzer, validator, recommender, reporter."""
+    backend: str | None = None
+    """LLM backend for this request: 'ollama' | 'openrouter' | None (use server default)."""
+    openrouter_api_key: str | None = None
+    """OpenRouter API key supplied by the user. Overrides server-side env vars for this request."""
 
 
 @app.post("/analyze/{job_id}")
@@ -227,7 +234,10 @@ async def analyze(job_id: str, req: AnalyzeRequest) -> StreamingResponse:
     def run() -> None:
         with logger.contextualize(job_id=job_id[:8]):
             try:
-                _run_pipeline(job_id, code, req.description, req.pdf, emit, req.models)
+                _run_pipeline(
+                    job_id, code, req.description, req.pdf, emit, req.models,
+                    req.backend, req.openrouter_api_key,
+                )
             except Exception as exc:
                 logger.exception("Unhandled error in pipeline thread: {}", exc)
                 emit("error", {"message": str(exc), "stage": "pipeline"})
@@ -318,6 +328,8 @@ def _run_pipeline(
     generate_pdf: bool,
     emit,
     model_overrides: dict[str, str] | None = None,
+    backend: str | None = None,
+    openrouter_api_key: str | None = None,
 ) -> None:
     """
     Execute the full pipeline synchronously.
@@ -325,7 +337,14 @@ def _run_pipeline(
     Uses a deep-copied config so each job has its own path namespace —
     no shared-state mutation, no serialisation lock needed.
     """
+    from pipeline.llm.context import REQUEST_BACKEND, REQUEST_OR_KEY
     from pipeline.llm.retry import with_retry
+
+    # Apply per-request backend and key — inherited by all child threads via contextvars
+    if backend:
+        REQUEST_BACKEND.set(backend)
+    if openrouter_api_key:
+        REQUEST_OR_KEY.set(openrouter_api_key)
     from pipeline.reporting.json_writer import generate_report
     from pipeline.reporting.pdf_writer import generate_pdf_report
     from pipeline.stages.preprocessing import run_preprocessing
@@ -395,7 +414,7 @@ def _execute_pipeline(
     generate_pdf_report,
     with_retry,
 ) -> None:
-    """Inner pipeline logic — no global state touched here."""
+    """Inner pipeline logic — functions processed in parallel after preprocessing."""
 
     effective_description = (
         description
@@ -403,7 +422,7 @@ def _execute_pipeline(
         else "Python source code submitted for CVE vulnerability analysis."
     )
 
-    # 1. PREPROCESSING
+    # 1. PREPROCESSING — sequential (extracts all functions first)
     emit("stage_start", {"stage": "preprocessing"})
 
     def _on_description(func_name: str, desc: str) -> None:
@@ -429,15 +448,20 @@ def _execute_pipeline(
         emit("pipeline_complete", {"functions_analysed": 0, "functions_fixed": 0})
         return
 
-    functions_fixed = 0
+    total = len(chunks)
+    # FileStore.put/get operates on a plain dict — serialise report writes.
+    _report_lock = threading.Lock()
 
-    for idx, chunk in enumerate(chunks):
+    # ------------------------------------------------------------------
+    # Per-function pipeline: RAG → validate → risk → recommend → report
+    # Runs in parallel across functions; emit() is thread-safe.
+    # ------------------------------------------------------------------
+    def _process_one(idx: int, chunk: dict) -> bool:
+        """Return True if a fix was successfully generated for this function."""
         func_name = chunk.get("name", "unknown")
-        emit("function_start", {"function": func_name, "index": idx, "total": len(chunks)})
+        emit("function_start", {"function": func_name, "index": idx, "total": total})
 
-        _ctx = logger.contextualize(function=func_name)
-        _ctx.__enter__()
-        try:
+        with logger.contextualize(function=func_name):
             # 2. RAG ANALYSIS
             emit("stage_start", {"stage": "rag_analysis"})
             try:
@@ -449,7 +473,7 @@ def _execute_pipeline(
                 )
             except Exception as exc:
                 emit("error", {"message": str(exc), "stage": "rag_analyzer", "function": func_name})
-                continue
+                return False
 
             detected_cves = [
                 cve
@@ -472,7 +496,7 @@ def _execute_pipeline(
                 )
             except Exception as exc:
                 emit("error", {"message": str(exc), "stage": "validator", "function": func_name})
-                continue
+                return False
 
             confirmed = val.get("vulnerabilities", [])
             emit("validation_complete", {"function": func_name, "confirmed_count": len(confirmed)})
@@ -485,20 +509,16 @@ def _execute_pipeline(
 
             if not current_vulns:
                 emit("function_clean", {"function": func_name})
-                continue
+                return False
 
-            # 5. ITERATIVE REMEDIATION (auto mode — always retry)
+            # 5. ITERATIVE REMEDIATION
             emit("stage_start", {"stage": "remediation"})
             attempts = 0
             final_rec = None
             retry_context = None
 
             while attempts < max_attempts:
-                emit(
-                    "fix_attempt",
-                    {"function": func_name, "attempt": attempts + 1, "max": max_attempts},
-                )
-
+                emit("fix_attempt", {"function": func_name, "attempt": attempts + 1, "max": max_attempts})
                 try:
                     rec = with_retry(
                         lambda c=chunk, cv=current_vulns, rc=retry_context: recommend(
@@ -511,29 +531,16 @@ def _execute_pipeline(
                         description=f"Recommendation for {func_name}",
                     )
                 except Exception as exc:
-                    emit(
-                        "error",
-                        {"message": str(exc), "stage": "recommender", "function": func_name},
-                    )
+                    emit("error", {"message": str(exc), "stage": "recommender", "function": func_name})
                     break
 
                 if rec.get("status") == "error":
-                    emit(
-                        "error",
-                        {
-                            "message": rec.get("reason", "Unknown recommender error"),
-                            "stage": "recommender",
-                            "function": func_name,
-                        },
-                    )
+                    emit("error", {"message": rec.get("reason", "Unknown recommender error"), "stage": "recommender", "function": func_name})
                     break
 
                 verdict = rec.get("verdict", "FIX_FAILED")
                 remaining = rec.get("remaining_vulnerability_count", 0)
-                emit(
-                    "fix_result",
-                    {"function": func_name, "verdict": verdict, "remaining": remaining},
-                )
+                emit("fix_result", {"function": func_name, "verdict": verdict, "remaining": remaining})
 
                 if verdict == "FIX_SUCCESSFUL":
                     final_rec = rec
@@ -543,28 +550,27 @@ def _execute_pipeline(
                 post_vulns = rec.get("post_fix_vulnerabilities", [])
                 retry_context = {
                     "failed_vulns": post_vulns,
-                    "attempted_strategies": ["remediation"]
-                    + (["mitigation"] if attempts > 1 else []),
+                    "attempted_strategies": ["remediation"] + (["mitigation"] if attempts > 1 else []),
                     "reason": f"{verdict} — {len(post_vulns)} issue(s) remain",
                 }
-
                 if attempts >= max_attempts:
                     final_rec = rec
 
-            # 6. REPORTING
+            # 6. REPORTING — serialised: FileStore is not thread-safe
             emit("stage_start", {"stage": "reporting"})
             if final_rec:
                 try:
-                    report_entry = generate_report(
-                        original=chunk["code"],
-                        fixed=final_rec["fixed_code"],
-                        risk=final_rec["risk_summary_after_fix"],
-                        function_name=func_name,
-                        model=MODELS["reporter"],
-                        vulnerabilities=current_vulns,
-                        store=store,
-                        output_dir=job_dir,
-                    )
+                    with _report_lock:
+                        report_entry = generate_report(
+                            original=chunk["code"],
+                            fixed=final_rec["fixed_code"],
+                            risk=final_rec["risk_summary_after_fix"],
+                            function_name=func_name,
+                            model=MODELS["reporter"],
+                            vulnerabilities=current_vulns,
+                            store=store,
+                            output_dir=job_dir,
+                        )
                     result_payload = {
                         "function_name": func_name,
                         "vulnerabilities": [
@@ -573,9 +579,7 @@ def _execute_pipeline(
                                 if isinstance(v.get("cves"), list)
                                 else v.get("cves", ""),
                                 "vulnerability": v.get("name", "Unknown"),
-                                "exploitability": v.get(
-                                    "priority", v.get("exploitability", "Medium")
-                                ),
+                                "exploitability": v.get("priority", v.get("exploitability", "Medium")),
                                 "original_code": chunk["code"],
                                 "fixed_code": final_rec["fixed_code"],
                                 "diff": report_entry.get("code_diff", ""),
@@ -586,13 +590,24 @@ def _execute_pipeline(
                         "audit_trail": final_rec.get("explanation", ""),
                     }
                     emit("report_written", {"function": func_name, "result": result_payload})
-                    functions_fixed += 1
+                    return True
                 except Exception as exc:
                     emit("error", {"message": str(exc), "stage": "report", "function": func_name})
-        finally:
-            _ctx.__exit__(None, None, None)
+            return False
 
-    # 7. PDF (optional)
+    # Run all functions in parallel; cap workers from config
+    max_workers = int(get_settings().get("max_function_workers", min(total, 4)))
+    functions_fixed = 0
+    with ThreadPoolExecutor(max_workers=max_workers) as fn_exec:
+        futures = {fn_exec.submit(_process_one, idx, chunk): chunk for idx, chunk in enumerate(chunks)}
+        for fut in as_completed(futures):
+            try:
+                if fut.result():
+                    functions_fixed += 1
+            except Exception as exc:
+                logger.error("Unhandled error in function thread: {}", exc)
+
+    # 7. PDF (optional, after all functions complete)
     if generate_pdf:
         try:
             pdf_path = generate_pdf_report(store=store, output_dir=job_dir)
@@ -600,6 +615,4 @@ def _execute_pipeline(
         except Exception as exc:
             emit("error", {"message": str(exc), "stage": "pdf"})
 
-    emit(
-        "pipeline_complete", {"functions_analysed": len(chunks), "functions_fixed": functions_fixed}
-    )
+    emit("pipeline_complete", {"functions_analysed": total, "functions_fixed": functions_fixed})

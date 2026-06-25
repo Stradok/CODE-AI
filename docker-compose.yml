@@ -1,0 +1,69 @@
+services:
+
+  # -------------------------------------------------------------------------
+  # Backend — FastAPI + CVE pipeline
+  # -------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Switch between local Ollama and cloud OpenRouter
+      LLM_BACKEND: ${LLM_BACKEND:-openrouter}
+
+      # OpenRouter API keys — master key is the fallback for all stages.
+      # Set per-group keys to give each stage its own rate-limit bucket
+      # (true parallel inference across stages).
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_API_KEY_REASONING:   ${OPENROUTER_API_KEY_REASONING:-}
+      OPENROUTER_API_KEY_CODING:      ${OPENROUTER_API_KEY_CODING:-}
+      OPENROUTER_API_KEY_INSTRUCTION: ${OPENROUTER_API_KEY_INSTRUCTION:-}
+      OPENROUTER_API_KEY_SUMMARIZE:   ${OPENROUTER_API_KEY_SUMMARIZE:-}
+
+      # Optional: OpenAI GPT-4o fallback (CLI interactive mode only)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      # CORS — allow the frontend container and any local browser
+      ALLOWED_ORIGINS: "http://localhost:3000,http://frontend:3000"
+
+    volumes:
+      # Mount your local data directory (NOT baked into the image — too large)
+      # Must contain: cve_embeddings_local.npz, nvd_cves_min.jsonl
+      # models/all-MiniLM-L6-v2/ is downloaded automatically on first start
+      - ./backend/pipeline/data:/app/pipeline/data
+      # Persist job output across restarts
+      - backend_output:/app/output
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s   # allow time for embedding model download
+
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # Frontend — Next.js
+  # -------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked into Next.js rewrites() at build time — must use the
+        # Docker Compose service name (internal network)
+        BACKEND_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  backend_output:

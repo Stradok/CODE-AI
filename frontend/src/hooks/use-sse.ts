@@ -4,6 +4,7 @@ import { useRef, useCallback } from "react";
 import { SSEParser } from "@/lib/sse-parser";
 import { useAnalysisStore } from "@/stores/analysis-store";
 import { useModelStore } from "@/stores/model-store";
+import { useBackendStore } from "@/stores/backend-store";
 import type { SSEEvent } from "@/types/events";
 import type { FunctionResult } from "@/types/report";
 import { toast } from "sonner";
@@ -119,6 +120,7 @@ export function useSSE() {
   );
 
   const getOverrides = useModelStore((s) => s.getOverrides);
+  const getBackendPayload = useBackendStore((s) => s.getRequestPayload);
 
   const analyze = useCallback(
     async (jobId: string, code: string, pdf: boolean, description?: string) => {
@@ -151,6 +153,7 @@ export function useSSE() {
             pdf,
             ...(description ? { description } : {}),
             ...(Object.keys(getOverrides()).length > 0 ? { models: getOverrides() } : {}),
+            ...getBackendPayload(),
           }),
           signal: controller.signal,
         });
@@ -195,7 +198,7 @@ export function useSSE() {
         toast.error(message);
       }
     },
-    [startAnalysis, routeEvent, setError]
+    [startAnalysis, routeEvent, setError, getBackendPayload]
   );
 
   const abort = useCallback(() => {

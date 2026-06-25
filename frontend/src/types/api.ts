@@ -7,6 +7,7 @@ export interface UploadResponse {
 export interface HealthResponse {
   status: string;
   ollama: boolean;
+  backend?: string;
 }
 
 export interface OllamaModel {
@@ -29,4 +30,6 @@ export interface AnalyzeRequest {
   description?: string;
   pdf: boolean;
   models?: Partial<Record<PipelineStage, string>>;
+  backend?: string;
+  openrouter_api_key?: string;
 }
