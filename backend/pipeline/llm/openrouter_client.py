@@ -40,6 +40,10 @@ _OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 _OPENROUTER_REFERER = "https://github.com/Stradok/CODE-AI"
 _OPENROUTER_TITLE = "CODE-AI CVE Pipeline"
 
+# Providers we call directly (no OpenRouter needed).
+# Everything else goes through OpenRouter (meta-llama, mistralai, deepseek, etc.)
+_DIRECT_PROVIDERS = {"openai", "anthropic"}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -118,6 +122,7 @@ def openrouter_chat(
     temperature: float | None = None,
     timeout: int | None = None,
     num_predict: int = 4096,
+    _api_key_override: str | None = None,
 ) -> str:
     """Send a chat request to OpenRouter (OpenAI-compatible streaming).
 
@@ -131,7 +136,7 @@ def openrouter_chat(
     if timeout is None:
         timeout = int(get_settings().get("llm_timeout", 120))
 
-    api_key = _api_key_for_model(model)
+    api_key = _api_key_override or _api_key_for_model(model)
     if not api_key:
         raise OllamaError(
             "No OpenRouter API key. Set OPENROUTER_API_KEY (or per-group "
@@ -178,6 +183,126 @@ def openrouter_chat(
 
     result = "".join(chunks)
     logger.debug("[OR] Response: {} chars", len(result))
+    return result
+
+
+def _detect_provider(model: str) -> str:
+    """Return 'openai', 'anthropic', or 'openrouter' from a model ID prefix."""
+    if "/" not in model:
+        return "openrouter"
+    return model.split("/")[0].lower()
+
+
+def dispatch_cloud_chat(
+    model: str,
+    prompt: str,
+    *,
+    temperature: float | None = None,
+    timeout: int | None = None,
+    num_predict: int = 4096,
+) -> str:
+    """Route to OpenAI, Anthropic, or OpenRouter based on the current stage config.
+
+    In "custom" backend mode, reads REQUEST_CURRENT_STAGE + REQUEST_STAGE_CONFIGS
+    to get the per-stage model + API key + provider.  Falls back to standard
+    openrouter_chat for "openrouter" mode or when no stage config is set.
+    """
+    from pipeline.config.loader import get_settings
+    from pipeline.llm.context import REQUEST_BACKEND, REQUEST_CURRENT_STAGE, REQUEST_STAGE_CONFIGS
+
+    if temperature is None:
+        temperature = float(get_settings().get("temperature", 0.0))
+    if timeout is None:
+        timeout = int(get_settings().get("llm_timeout", 120))
+
+    backend = REQUEST_BACKEND.get("")
+    stage = REQUEST_CURRENT_STAGE.get("")
+    stage_configs = REQUEST_STAGE_CONFIGS.get({})
+
+    use_model = model
+    api_key: str | None = None
+    provider = "openrouter"
+
+    if backend == "custom" and stage and stage in stage_configs:
+        cfg = stage_configs[stage]
+        use_model = cfg.get("model") or model
+        api_key = cfg.get("api_key") or None
+        provider = cfg.get("provider") or _detect_provider(use_model)
+    else:
+        api_key = _api_key_for_model(model)
+        provider = "openrouter"
+
+    logger.debug(
+        "[dispatch] stage='{}' model='{}' provider='{}' backend='{}'",
+        stage, use_model, provider, backend,
+    )
+
+    if provider == "openai":
+        return _call_openai_direct(
+            use_model, prompt, api_key=api_key or "", temperature=temperature,
+            timeout=timeout, max_tokens=num_predict,
+        )
+    if provider == "anthropic":
+        from pipeline.llm.anthropic_client import anthropic_chat
+        return anthropic_chat(
+            use_model, prompt, api_key=api_key or "",
+            temperature=temperature, timeout=timeout, max_tokens=num_predict,
+        )
+    # Everything else (meta-llama, mistralai, deepseek, qwen, google, …) via OpenRouter
+    return openrouter_chat(
+        use_model, prompt, temperature=temperature, timeout=timeout,
+        num_predict=num_predict, _api_key_override=api_key,
+    )
+
+
+def _call_openai_direct(
+    model: str,
+    prompt: str,
+    *,
+    api_key: str,
+    temperature: float = 0.0,
+    timeout: int = 120,
+    max_tokens: int = 4096,
+) -> str:
+    """Call OpenAI's API directly (no OpenRouter)."""
+    from openai import OpenAI
+
+    # Strip provider prefix if present (e.g. "openai/gpt-4o" → "gpt-4o")
+    norm = model[len("openai/"):] if model.startswith("openai/") else model
+    logger.debug("[OpenAI] chat model='{}' timeout={}s max_tokens={}", norm, timeout, max_tokens)
+
+    client = OpenAI(api_key=api_key)
+    chunks: list[str] = []
+    deadline = time.monotonic() + timeout
+
+    try:
+        stream = client.chat.completions.create(
+            model=norm,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
+        try:
+            for chunk in stream:
+                if time.monotonic() > deadline:
+                    raise LLMTimeoutError(f"OpenAI call to '{norm}' timed out after {timeout}s")
+                delta = chunk.choices[0].delta.content or ""
+                chunks.append(delta)
+        except LLMTimeoutError:
+            raise
+        except Exception as exc:
+            raise OllamaError(f"OpenAI stream error: {exc}") from exc
+        finally:
+            with suppress(Exception):
+                stream.close()
+    except (LLMTimeoutError, OllamaError):
+        raise
+    except Exception as exc:
+        raise OllamaError(f"OpenAI connection error: {exc}") from exc
+
+    result = "".join(chunks)
+    logger.debug("[OpenAI] Response: {} chars", len(result))
     return result
 
 

@@ -21,8 +21,10 @@ dependencies = [
     "openpyxl>=3.1.0",
     # PDF Report Generation
     "fpdf2>=2.7.0",
-    # OpenAI GPT Fallback
+    # OpenAI GPT Fallback + direct OpenAI calls in custom mode
     "openai>=1.0.0",
+    # Anthropic Claude direct calls in custom mode
+    "anthropic>=0.40.0",
     # LangChain Output Parsers
     "langchain-core>=0.3.0",
     # Progress Bars

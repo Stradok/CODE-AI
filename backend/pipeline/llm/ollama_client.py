@@ -148,9 +148,9 @@ def ollama_chat(
     import os
     from pipeline.llm.context import REQUEST_BACKEND
     _backend = REQUEST_BACKEND.get() or os.environ.get("LLM_BACKEND", "ollama")
-    if _backend.lower() == "openrouter":
-        from pipeline.llm.openrouter_client import openrouter_chat
-        return openrouter_chat(
+    if _backend.lower() in ("openrouter", "custom"):
+        from pipeline.llm.openrouter_client import dispatch_cloud_chat
+        return dispatch_cloud_chat(
             model, prompt, temperature=temperature, timeout=timeout, num_predict=num_predict
         )
 
@@ -224,9 +224,9 @@ def ollama_generate(
     import os
     from pipeline.llm.context import REQUEST_BACKEND
     _backend = REQUEST_BACKEND.get() or os.environ.get("LLM_BACKEND", "ollama")
-    if _backend.lower() == "openrouter":
-        from pipeline.llm.openrouter_client import openrouter_generate
-        return openrouter_generate(
+    if _backend.lower() in ("openrouter", "custom"):
+        from pipeline.llm.openrouter_client import dispatch_cloud_chat
+        return dispatch_cloud_chat(
             model, prompt, temperature=temperature, timeout=timeout, num_predict=num_predict
         )
 

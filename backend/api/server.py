@@ -190,6 +190,15 @@ async def upload(file: UploadFile = File(...)) -> dict:
 # ---------------------------------------------------------------------------
 
 
+class StageKeyConfig(BaseModel):
+    model: str = ""
+    """Model ID for this stage (e.g. 'openai/gpt-4o', 'anthropic/claude-3-5-sonnet-20241022')."""
+    api_key: str = ""
+    """Provider API key. OpenAI key for openai/* models, Anthropic key for anthropic/* models."""
+    provider: str = ""
+    """Provider override. Auto-detected from model prefix when empty."""
+
+
 class AnalyzeRequest(BaseModel):
     code: str | None = None
     """Current editor content. Falls back to the uploaded file when omitted."""
@@ -200,9 +209,11 @@ class AnalyzeRequest(BaseModel):
     models: dict[str, str] | None = None
     """Per-stage model overrides. Keys: preprocessing, rag_analyzer, validator, recommender, reporter."""
     backend: str | None = None
-    """LLM backend for this request: 'ollama' | 'openrouter' | None (use server default)."""
+    """LLM backend: 'ollama' | 'openrouter' | 'custom' | None (use server default)."""
     openrouter_api_key: str | None = None
-    """OpenRouter API key supplied by the user. Overrides server-side env vars for this request."""
+    """OpenRouter API key. Used when backend='openrouter'."""
+    stage_configs: dict[str, StageKeyConfig] | None = None
+    """Per-stage model + API key config. Used when backend='custom'."""
 
 
 @app.post("/analyze/{job_id}")
@@ -236,7 +247,7 @@ async def analyze(job_id: str, req: AnalyzeRequest) -> StreamingResponse:
             try:
                 _run_pipeline(
                     job_id, code, req.description, req.pdf, emit, req.models,
-                    req.backend, req.openrouter_api_key,
+                    req.backend, req.openrouter_api_key, req.stage_configs,
                 )
             except Exception as exc:
                 logger.exception("Unhandled error in pipeline thread: {}", exc)
@@ -330,6 +341,7 @@ def _run_pipeline(
     model_overrides: dict[str, str] | None = None,
     backend: str | None = None,
     openrouter_api_key: str | None = None,
+    stage_configs: dict | None = None,
 ) -> None:
     """
     Execute the full pipeline synchronously.
@@ -337,14 +349,28 @@ def _run_pipeline(
     Uses a deep-copied config so each job has its own path namespace —
     no shared-state mutation, no serialisation lock needed.
     """
-    from pipeline.llm.context import REQUEST_BACKEND, REQUEST_OR_KEY
+    from pipeline.llm.context import REQUEST_BACKEND, REQUEST_OR_KEY, REQUEST_STAGE_CONFIGS
     from pipeline.llm.retry import with_retry
 
-    # Apply per-request backend and key — inherited by all child threads via contextvars
+    # Apply per-request context — inherited by all child threads via contextvars (PEP 567)
     if backend:
         REQUEST_BACKEND.set(backend)
     if openrouter_api_key:
         REQUEST_OR_KEY.set(openrouter_api_key)
+    if stage_configs:
+        configs_dict = {
+            stage: {"model": cfg.model, "api_key": cfg.api_key, "provider": cfg.provider}
+            for stage, cfg in stage_configs.items()
+            if cfg.api_key or cfg.model
+        }
+        REQUEST_STAGE_CONFIGS.set(configs_dict)
+        # Promote stage models into model_overrides so MODELS[stage] gets the right value
+        if model_overrides is None:
+            model_overrides = {}
+        for stage, cfg in stage_configs.items():
+            if cfg.model and stage not in model_overrides:
+                model_overrides[stage] = cfg.model
+
     from pipeline.reporting.json_writer import generate_report
     from pipeline.reporting.pdf_writer import generate_pdf_report
     from pipeline.stages.preprocessing import run_preprocessing
@@ -422,12 +448,15 @@ def _execute_pipeline(
         else "Python source code submitted for CVE vulnerability analysis."
     )
 
+    from pipeline.llm.context import REQUEST_CURRENT_STAGE
+
     # 1. PREPROCESSING — sequential (extracts all functions first)
     emit("stage_start", {"stage": "preprocessing"})
 
     def _on_description(func_name: str, desc: str) -> None:
         emit("description_generated", {"function": func_name, "description": desc})
 
+    REQUEST_CURRENT_STAGE.set("preprocessing")
     try:
         chunks = run_preprocessing(
             code=code,
@@ -464,6 +493,7 @@ def _execute_pipeline(
         with logger.contextualize(function=func_name):
             # 2. RAG ANALYSIS
             emit("stage_start", {"stage": "rag_analysis"})
+            REQUEST_CURRENT_STAGE.set("rag_analyzer")
             try:
                 rag_raw = with_retry(
                     lambda c=chunk: analyze(
@@ -487,6 +517,7 @@ def _execute_pipeline(
 
             # 3. VALIDATION
             emit("stage_start", {"stage": "validation"})
+            REQUEST_CURRENT_STAGE.set("validator")
             try:
                 val = with_retry(
                     lambda c=chunk, rr=rag_raw: validate_code(
@@ -513,6 +544,7 @@ def _execute_pipeline(
 
             # 5. ITERATIVE REMEDIATION
             emit("stage_start", {"stage": "remediation"})
+            REQUEST_CURRENT_STAGE.set("recommender")
             attempts = 0
             final_rec = None
             retry_context = None
@@ -558,6 +590,7 @@ def _execute_pipeline(
 
             # 6. REPORTING — serialised: FileStore is not thread-safe
             emit("stage_start", {"stage": "reporting"})
+            REQUEST_CURRENT_STAGE.set("reporter")
             if final_rec:
                 try:
                     with _report_lock:

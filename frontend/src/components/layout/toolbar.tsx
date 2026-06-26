@@ -31,7 +31,9 @@ import { cn } from "@/lib/utils";
 function ConnectionPill() {
   const health = useHealthCheck();
   const backend = useBackendStore((s) => s.backend);
-  const masterKey = useBackendStore((s) => s.masterKey);
+  const orKey = useBackendStore((s) => s.orKey);
+  const orConnected = useBackendStore((s) => s.orConnected);
+  const stageConfigs = useBackendStore((s) => s.stageConfigs);
 
   // Effective backend: user choice or server default
   const effective =
@@ -60,17 +62,28 @@ function ConnectionPill() {
     );
   }
 
-  // Cloud mode
+  // Custom per-stage mode
+  if (effective === "custom") {
+    const count = Object.values(stageConfigs).filter((c) => c?.apiKey).length;
+    return (
+      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-2.5 py-1 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
+        <Wifi className="h-3 w-3 text-[#6C63FF]" />
+        <span className="text-[10px] text-[#6C63FF]">{count > 0 ? `Custom (${count} stages)` : "Custom"}</span>
+      </div>
+    );
+  }
+
+  // Cloud OpenRouter mode
   if (effective === "openrouter") {
-    if (!masterKey.trim()) {
+    if (!orKey.trim()) {
       return (
         <Tooltip>
           <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEF3C7] px-2.5 py-1 shadow-[inset_3px_3px_6px_rgba(214,158,46,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
             <AlertTriangle className="h-3 w-3 text-[#D69E2E]" />
-            <span className="text-[10px] text-[#D69E2E]">No API key</span>
+            <span className="text-[10px] text-[#D69E2E]">Sign in to OpenRouter</span>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            Enter your OpenRouter key in the Backend selector
+            Click the Backend button and sign in with OpenRouter
           </TooltipContent>
         </Tooltip>
       );
@@ -78,7 +91,7 @@ function ConnectionPill() {
     return (
       <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-2.5 py-1 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
         <Wifi className="h-3 w-3 text-[#6C63FF]" />
-        <span className="text-[10px] text-[#6C63FF]">Cloud API</span>
+        <span className="text-[10px] text-[#6C63FF]">{orConnected ? "OpenRouter ✓" : "Cloud API"}</span>
       </div>
     );
   }

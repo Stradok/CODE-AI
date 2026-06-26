@@ -1,58 +1,105 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import type { PipelineStage, StageKeyConfig } from "@/types/api";
 
-export type LLMBackend = "auto" | "ollama" | "openrouter";
+export type LLMBackend = "ollama" | "openrouter" | "custom" | "auto";
+
+export function detectProvider(model: string): "openai" | "anthropic" | "openrouter" {
+  const prefix = model.split("/")[0].toLowerCase();
+  if (prefix === "openai") return "openai";
+  if (prefix === "anthropic") return "anthropic";
+  return "openrouter";
+}
+
+export const PROVIDER_KEY_LABELS: Record<string, string> = {
+  openai: "OpenAI key (sk-…)",
+  anthropic: "Anthropic key (sk-ant-…)",
+  openrouter: "OpenRouter key (sk-or-…)",
+};
 
 interface BackendState {
-  /** User's chosen LLM backend. "auto" defers to the server's env config. */
   backend: LLMBackend;
 
-  /** Master OpenRouter API key — used for all stages unless group keys are set. */
-  masterKey: string;
+  // ── OpenRouter OAuth mode ──────────────────────────────────────────────────
+  orKey: string;                // API key obtained via OAuth or pasted manually
+  orConnected: boolean;         // true when key came from OAuth flow
 
-  /** Optional per-model-group keys for parallel rate limits (advanced). */
-  groupKeys: {
-    reasoning: string;   // deepseek / r1  (preprocessing + RAG)
-    coding: string;      // qwen / coder   (recommender + verifier)
-    instruction: string; // llama          (validator)
-    summarize: string;   // mistral        (reporter)
-  };
+  // ── Custom per-stage mode ─────────────────────────────────────────────────
+  stageConfigs: Partial<Record<PipelineStage, { model: string; apiKey: string }>>;
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   setBackend: (b: LLMBackend) => void;
-  setMasterKey: (key: string) => void;
-  setGroupKey: (group: keyof BackendState["groupKeys"], key: string) => void;
+  setOrKey: (key: string, connected?: boolean) => void;
+  setStageConfig: (stage: PipelineStage, model: string, apiKey: string) => void;
+  clearStageConfig: (stage: PipelineStage) => void;
+  resetCustom: () => void;
 
-  /** Returns the key/backend to include in the analyze request body. */
-  getRequestPayload: () => { backend?: string; openrouter_api_key?: string };
+  /** Returns fields to spread into the AnalyzeRequest body. */
+  getRequestPayload: () => {
+    backend?: string;
+    openrouter_api_key?: string;
+    stage_configs?: Partial<Record<PipelineStage, StageKeyConfig>>;
+  };
 }
 
 export const useBackendStore = create<BackendState>()(
   persist(
     (set, get) => ({
       backend: "auto",
-      masterKey: "",
-      groupKeys: { reasoning: "", coding: "", instruction: "", summarize: "" },
+      orKey: "",
+      orConnected: false,
+      stageConfigs: {},
 
       setBackend: (b) => set({ backend: b }),
-      setMasterKey: (key) => set({ masterKey: key }),
-      setGroupKey: (group, key) =>
-        set((s) => ({ groupKeys: { ...s.groupKeys, [group]: key } })),
+
+      setOrKey: (key, connected = false) =>
+        set({ orKey: key, orConnected: connected }),
+
+      setStageConfig: (stage, model, apiKey) =>
+        set((s) => ({
+          stageConfigs: { ...s.stageConfigs, [stage]: { model, apiKey } },
+        })),
+
+      clearStageConfig: (stage) =>
+        set((s) => {
+          const next = { ...s.stageConfigs };
+          delete next[stage];
+          return { stageConfigs: next };
+        }),
+
+      resetCustom: () => set({ stageConfigs: {} }),
 
       getRequestPayload: () => {
-        const { backend, masterKey } = get();
-        if (backend === "auto") return {};
-        return {
-          backend,
-          ...(backend === "openrouter" && masterKey
-            ? { openrouter_api_key: masterKey }
-            : {}),
-        };
+        const { backend, orKey, stageConfigs } = get();
+
+        if (backend === "auto" || backend === "ollama") {
+          return backend === "ollama" ? { backend: "ollama" } : {};
+        }
+
+        if (backend === "openrouter") {
+          return {
+            backend: "openrouter",
+            ...(orKey ? { openrouter_api_key: orKey } : {}),
+          };
+        }
+
+        // custom — build per-stage configs
+        const configs: Partial<Record<PipelineStage, StageKeyConfig>> = {};
+        for (const [stage, cfg] of Object.entries(stageConfigs)) {
+          if (cfg && (cfg.model || cfg.apiKey)) {
+            configs[stage as PipelineStage] = {
+              model: cfg.model,
+              api_key: cfg.apiKey,
+              provider: detectProvider(cfg.model),
+            };
+          }
+        }
+        return { backend: "custom", stage_configs: configs };
       },
     }),
     {
       name: "code-ai-backend-preference",
       storage: createJSONStorage(() => {
-        // Safe access during SSR
         if (typeof window === "undefined") return sessionStorage;
         return localStorage;
       }),
