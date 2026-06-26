@@ -141,7 +141,7 @@ export function useSSE() {
         // SSE events that means events arrive all-at-once at stream close.
         // Connect directly to the backend (CORS is enabled there).
         const sseBase =
-          process.env.NEXT_PUBLIC_SSE_BASE_URL ?? "http://localhost:8000";
+          process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
         const res = await fetch(`${sseBase}/analyze/${jobId}`, {
           method: "POST",
           headers: {

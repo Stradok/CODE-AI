@@ -25,8 +25,10 @@ services:
       # Optional: OpenAI GPT-4o fallback (CLI interactive mode only)
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
-      # CORS — allow the frontend container and any local browser
-      ALLOWED_ORIGINS: "http://localhost:3000,http://frontend:3000"
+      # CORS — set ALLOWED_ORIGINS in your .env file.
+      # After Vercel deployment, add your Vercel URL:
+      #   ALLOWED_ORIGINS=http://localhost:3000,https://your-app.vercel.app
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
 
     volumes:
       # Mount your local data directory (NOT baked into the image — too large)

@@ -62,11 +62,19 @@ settings:
 #   qwen/qwen-2.5-coder-32b-instruct  ($0.07/M tokens  — best open coding model)
 
 openrouter:
+  # Free-tier models — no credit needed, one API key per model group
+  # gives each stage its own rate-limit bucket on the free tier.
+  # Check https://openrouter.ai/models?q=free for the current free list.
   model_map:
-    "deepseek-r1:8b":      "deepseek/deepseek-r1-distill-llama-8b"
-    "llama3.1:8b":         "meta-llama/llama-3.1-8b-instruct"
-    "qwen2.5-coder:7b":    "qwen/qwen-2.5-coder-7b-instruct"
-    "mistral:7b":          "mistralai/mistral-7b-instruct"
+    "deepseek-r1:8b":      "deepseek/deepseek-r1-distill-llama-8b:free"
+    "llama3.1:8b":         "meta-llama/llama-3.1-8b-instruct:free"
+    "qwen2.5-coder:7b":    "qwen/qwen-2.5-coder-7b-instruct:free"
+    "mistral:7b":          "mistralai/mistral-7b-instruct:free"
+  # Paid alternatives (faster, higher limits — remove :free suffix):
+  # "deepseek-r1:8b":    "deepseek/deepseek-r1-distill-llama-8b"
+  # "llama3.1:8b":       "meta-llama/llama-3.1-8b-instruct"
+  # "qwen2.5-coder:7b":  "qwen/qwen-2.5-coder-7b-instruct"
+  # "mistral:7b":        "mistralai/mistral-7b-instruct"
 
 paths:
   cve_embeddings: "pipeline/data/cve_embeddings_local.npz"

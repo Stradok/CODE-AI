@@ -1,6 +1,10 @@
 import type { UploadResponse, HealthResponse, ModelsResponse } from "@/types/api";
 
-const API_BASE = "/api";
+// All API calls go directly from the browser to the local backend.
+// NEXT_PUBLIC_* vars are baked into the JS bundle at Vercel build time,
+// so the browser calls http://localhost:8000 on the user's own machine —
+// not Vercel's servers (which can't reach your localhost).
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000");
 
 export async function uploadFile(file: File): Promise<UploadResponse> {
   const formData = new FormData();
