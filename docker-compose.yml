@@ -13,17 +13,12 @@ services:
       # Switch between local Ollama and cloud OpenRouter
       LLM_BACKEND: ${LLM_BACKEND:-openrouter}
 
-      # OpenRouter API keys — master key is the fallback for all stages.
-      # Set per-group keys to give each stage its own rate-limit bucket
-      # (true parallel inference across stages).
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      OPENROUTER_API_KEY_REASONING:   ${OPENROUTER_API_KEY_REASONING:-}
-      OPENROUTER_API_KEY_CODING:      ${OPENROUTER_API_KEY_CODING:-}
-      OPENROUTER_API_KEY_INSTRUCTION: ${OPENROUTER_API_KEY_INSTRUCTION:-}
-      OPENROUTER_API_KEY_SUMMARIZE:   ${OPENROUTER_API_KEY_SUMMARIZE:-}
-
-      # Optional: OpenAI GPT-4o fallback (CLI interactive mode only)
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # API keys are NOT stored here — users supply them via the UI (OAuth or
+      # per-request in Custom mode).  These are only needed for the CLI tool
+      # or if you want a server-side fallback key (optional).
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY:     ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY:  ${ANTHROPIC_API_KEY:-}
 
       # CORS — set ALLOWED_ORIGINS in your .env file.
       # After Vercel deployment, add your Vercel URL:
