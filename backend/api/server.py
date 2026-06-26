@@ -22,6 +22,16 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+# Auto-load .env from the repo root when running bare (uv run uvicorn …).
+# In Docker, env vars are already injected — load_dotenv is a no-op there.
+try:
+    from dotenv import load_dotenv
+    _env_file = Path(__file__).resolve().parents[2] / ".env"
+    load_dotenv(_env_file, override=False)
+except ImportError:
+    pass
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -79,7 +89,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-_ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "*")
+# "*" means allow all origins (safe: this server holds no API keys or secrets).
+# Set ALLOWED_ORIGINS to a comma-separated list to restrict to specific origins.
+_ALLOW_ALL = _raw_origins.strip() == "*"
+_ALLOWED_ORIGINS = ["*"] if _ALLOW_ALL else [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -324,6 +338,139 @@ async def get_pdf_report(job_id: str) -> Response:
         content=f.content,
         media_type="application/pdf",
         headers={"Content-Disposition": 'attachment; filename="pipeline_report.pdf"'},
+    )
+
+
+# ---------------------------------------------------------------------------
+# GitHub repo scanner — SSE stream
+# ---------------------------------------------------------------------------
+
+
+class ScanRepoRequest(BaseModel):
+    repo_url: str
+    """Full GitHub repo URL, e.g. https://github.com/owner/repo"""
+    github_token: str | None = None
+    """Optional GitHub personal access token (raises rate limit 60→5000 req/hr)."""
+    max_files: int = 15
+    """Maximum number of Python files to scan (prioritised by security relevance)."""
+    backend: str | None = None
+    openrouter_api_key: str | None = None
+    stage_configs: dict[str, StageKeyConfig] | None = None
+
+
+@app.post("/scan-repo")
+async def scan_repo(req: ScanRepoRequest) -> StreamingResponse:
+    """
+    Fetch Python files from a public GitHub repo and run the CVE pipeline on each.
+
+    Streams SSE events. All per-file pipeline events carry an extra ``file``
+    field identifying which repository file they belong to.  Additional
+    repo-level events:
+
+    * ``repo_start``    — fetch started
+    * ``repo_files``    — file list resolved
+    * ``repo_file_start`` / ``repo_file_done`` — per-file bookends
+    * ``repo_file_error`` — file-level failure (scan continues)
+    * ``repo_complete`` — all files processed
+    """
+    loop = asyncio.get_event_loop()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    def emit(event: str, data: dict) -> None:
+        payload = f"event: {event}\ndata: {json.dumps(data)}\n\n"
+        loop.call_soon_threadsafe(queue.put_nowait, payload)
+
+    def run() -> None:
+        try:
+            from api.github_scanner import fetch_repo_python_files, parse_github_url
+
+            emit("repo_start", {"status": "fetching", "repo_url": req.repo_url})
+
+            try:
+                owner, repo_name = parse_github_url(req.repo_url)
+                files = fetch_repo_python_files(
+                    owner,
+                    repo_name,
+                    token=req.github_token or "",
+                    max_files=req.max_files,
+                )
+            except (ValueError, RuntimeError) as exc:
+                emit("error", {"message": str(exc), "stage": "github_fetch"})
+                return
+
+            total_files = len(files)
+            emit("repo_files", {
+                "owner": owner,
+                "repo": repo_name,
+                "total": total_files,
+                "paths": [f["path"] for f in files],
+            })
+
+            if not files:
+                emit("repo_complete", {"total_files": 0, "error": "No scannable Python files found"})
+                return
+
+            for idx, file_info in enumerate(files):
+                path = file_info["path"]
+                content = file_info["content"]
+
+                emit("repo_file_start", {"file": path, "index": idx, "total": total_files})
+
+                file_job_id = uuid.uuid4().hex
+                file_store = FileStore()
+                _jobs[file_job_id] = {
+                    "filename": path,
+                    "code": content,
+                    "store": file_store,
+                    "created_at": time.time(),
+                }
+
+                def file_emit(event: str, data: dict, _path: str = path) -> None:
+                    emit(event, {"file": _path, **data})
+
+                try:
+                    _run_pipeline(
+                        file_job_id, content, None, False,
+                        file_emit, None,
+                        req.backend, req.openrouter_api_key, req.stage_configs,
+                    )
+                except Exception as exc:
+                    logger.warning("[scan-repo] {} failed: {}", path, exc)
+                    emit("repo_file_error", {"file": path, "error": str(exc)})
+                finally:
+                    _jobs.pop(file_job_id, None)
+
+                emit("repo_file_done", {"file": path, "index": idx, "total": total_files})
+
+            emit("repo_complete", {"total_files": total_files})
+
+        except Exception as exc:
+            logger.exception("Unhandled error in scan-repo thread: {}", exc)
+            emit("error", {"message": str(exc), "stage": "scan_repo"})
+        finally:
+            loop.call_soon_threadsafe(queue.put_nowait, None)
+
+    _executor.submit(run)
+
+    async def event_stream():
+        while True:
+            try:
+                item = await asyncio.wait_for(queue.get(), timeout=15.0)
+            except asyncio.TimeoutError:
+                yield ": heartbeat\n\n"
+                continue
+            if item is None:
+                break
+            yield item
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

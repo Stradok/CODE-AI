@@ -6,9 +6,9 @@ import {
   Loader2,
   Info,
   ShieldCheck,
-  Bug,
   Wrench,
   FileText,
+  GitFork,
 } from "lucide-react";
 import type { SSEEvent, SSEEventType } from "@/types/events";
 import { EVENT_DESCRIPTIONS } from "@/lib/constants";
@@ -29,6 +29,12 @@ const EVENT_ICONS: Record<SSEEventType, React.ReactNode> = {
   pdf_generated: <FileText className="h-3.5 w-3.5 text-[#6C63FF]" />,
   pipeline_complete: <CheckCircle2 className="h-3.5 w-3.5 text-[#38A169]" />,
   error: <AlertCircle className="h-3.5 w-3.5 text-[#DC2626]" />,
+  repo_start: <GitFork className="h-3.5 w-3.5 text-[#6C63FF]" />,
+  repo_files: <GitFork className="h-3.5 w-3.5 text-[#6C63FF]" />,
+  repo_file_start: <Loader2 className="h-3.5 w-3.5 text-[#6C63FF] animate-spin" />,
+  repo_file_done: <CheckCircle2 className="h-3.5 w-3.5 text-[#38A169]" />,
+  repo_file_error: <AlertCircle className="h-3.5 w-3.5 text-[#DC2626]" />,
+  repo_complete: <CheckCircle2 className="h-3.5 w-3.5 text-[#38A169]" />,
 };
 
 function formatTime(date: Date): string {
@@ -75,6 +81,18 @@ function getEventDetail(event: SSEEvent): string {
         ? `${func}: ${d.message} (continuing...)`
         : `Error: ${d.message}`;
     }
+    case "repo_start":
+      return `Fetching ${d.repo_url ?? "repository"}…`;
+    case "repo_files":
+      return `Found ${d.total} files to scan in ${d.owner}/${d.repo}`;
+    case "repo_file_start":
+      return `Scanning: ${d.file} (${(d.index as number) + 1}/${d.total})`;
+    case "repo_file_done":
+      return `Done: ${d.file}`;
+    case "repo_file_error":
+      return `Error in ${d.file}: ${d.error}`;
+    case "repo_complete":
+      return `Repo scan complete — ${d.total_files} file${(d.total_files as number) !== 1 ? "s" : ""} scanned`;
     default:
       return base;
   }

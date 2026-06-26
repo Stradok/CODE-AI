@@ -40,3 +40,12 @@ export interface AnalyzeRequest {
   openrouter_api_key?: string;
   stage_configs?: Partial<Record<PipelineStage, StageKeyConfig>>;
 }
+
+export interface ScanRepoRequest {
+  repo_url: string;
+  github_token?: string;
+  max_files?: number;
+  backend?: string;
+  openrouter_api_key?: string;
+  stage_configs?: Partial<Record<PipelineStage, StageKeyConfig>>;
+}

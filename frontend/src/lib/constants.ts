@@ -53,4 +53,10 @@ export const EVENT_DESCRIPTIONS: Record<SSEEventType, string> = {
   pdf_generated: "PDF report generated",
   pipeline_complete: "Analysis complete",
   error: "Error occurred",
+  repo_start: "Fetching repository",
+  repo_files: "Repository files resolved",
+  repo_file_start: "Scanning file",
+  repo_file_done: "File scan complete",
+  repo_file_error: "File scan error",
+  repo_complete: "Repository scan complete",
 };
