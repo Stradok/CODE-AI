@@ -1,4 +1,5 @@
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,50:0ea5e9,100:6366f1&height=220&section=header&text=CODE-AI&fontSize=90&fontColor=ffffff&animation=twinkling&fontAlignY=38&desc=Context-Aware%20CVE%20Detection%20%26%20Automated%20Remediation&descAlignY=58&descSize=20&descColor=cbd5e1" width="100%"/>
+ Remember to run sudo docker compose -f /run/media/amman/Linux1/CODE_AI/docker-compose.yml up -d backend when you turn your PC back on. See you next session.
+ <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,50:0ea5e9,100:6366f1&height=220&section=header&text=CODE-AI&fontSize=90&fontColor=ffffff&animation=twinkling&fontAlignY=38&desc=Context-Aware%20CVE%20Detection%20%26%20Automated%20Remediation&descAlignY=58&descSize=20&descColor=cbd5e1" width="100%"/>
 
 <div align="center">
 
