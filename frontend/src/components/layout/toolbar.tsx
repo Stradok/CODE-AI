@@ -41,9 +41,9 @@ function ConnectionPill() {
 
   if (health.loading) {
     return (
-      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-2.5 py-1 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]">
+      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-1.5 py-1 sm:px-2.5 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]">
         <Loader2 className="h-3 w-3 animate-spin text-[#6B7280]" />
-        <span className="text-[10px] text-[#6B7280]">Connecting…</span>
+        <span className="hidden sm:inline text-[10px] text-[#6B7280]">Connecting…</span>
       </div>
     );
   }
@@ -51,9 +51,9 @@ function ConnectionPill() {
   if (health.error) {
     return (
       <Tooltip>
-        <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEE2E2] px-2.5 py-1 shadow-[inset_3px_3px_6px_rgba(220,38,38,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
+        <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEE2E2] px-1.5 py-1 sm:px-2.5 shadow-[inset_3px_3px_6px_rgba(220,38,38,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
           <WifiOff className="h-3 w-3 text-[#DC2626]" />
-          <span className="text-[10px] text-[#DC2626]">Backend offline</span>
+          <span className="hidden sm:inline text-[10px] text-[#DC2626]">Backend offline</span>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           Start the backend: <code className="text-xs">make start</code>
@@ -66,9 +66,9 @@ function ConnectionPill() {
   if (effective === "custom") {
     const count = Object.values(stageConfigs).filter((c) => c?.apiKey).length;
     return (
-      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-2.5 py-1 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
+      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-1.5 py-1 sm:px-2.5 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
         <Wifi className="h-3 w-3 text-[#6C63FF]" />
-        <span className="text-[10px] text-[#6C63FF]">{count > 0 ? `Custom (${count} stages)` : "Custom"}</span>
+        <span className="hidden sm:inline text-[10px] text-[#6C63FF]">{count > 0 ? `Custom (${count})` : "Custom"}</span>
       </div>
     );
   }
@@ -78,9 +78,9 @@ function ConnectionPill() {
     if (!orKey.trim()) {
       return (
         <Tooltip>
-          <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEF3C7] px-2.5 py-1 shadow-[inset_3px_3px_6px_rgba(214,158,46,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
+          <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEF3C7] px-1.5 py-1 sm:px-2.5 shadow-[inset_3px_3px_6px_rgba(214,158,46,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
             <AlertTriangle className="h-3 w-3 text-[#D69E2E]" />
-            <span className="text-[10px] text-[#D69E2E]">Sign in to OpenRouter</span>
+            <span className="hidden sm:inline text-[10px] text-[#D69E2E]">Sign in</span>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             Click the Backend button and sign in with OpenRouter
@@ -89,9 +89,9 @@ function ConnectionPill() {
       );
     }
     return (
-      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-2.5 py-1 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
+      <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-1.5 py-1 sm:px-2.5 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
         <Wifi className="h-3 w-3 text-[#6C63FF]" />
-        <span className="text-[10px] text-[#6C63FF]">{orConnected ? "OpenRouter ✓" : "Cloud API"}</span>
+        <span className="hidden sm:inline text-[10px] text-[#6C63FF]">{orConnected ? "OpenRouter ✓" : "Cloud"}</span>
       </div>
     );
   }
@@ -100,9 +100,9 @@ function ConnectionPill() {
   if (!health.ollama) {
     return (
       <Tooltip>
-        <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEF3C7] px-2.5 py-1 shadow-[inset_3px_3px_6px_rgba(214,158,46,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
+        <TooltipTrigger className="flex cursor-default items-center gap-1.5 rounded-full bg-[#FEF3C7] px-1.5 py-1 sm:px-2.5 shadow-[inset_3px_3px_6px_rgba(214,158,46,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.3)]">
           <AlertTriangle className="h-3 w-3 text-[#D69E2E]" />
-          <span className="text-[10px] text-[#D69E2E]">Ollama offline</span>
+          <span className="hidden sm:inline text-[10px] text-[#D69E2E]">Ollama offline</span>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           Start Ollama: <code className="text-xs">ollama serve</code>
@@ -112,9 +112,9 @@ function ConnectionPill() {
   }
 
   return (
-    <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-2.5 py-1 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
+    <div className="flex items-center gap-1.5 rounded-full bg-[#E0E5EC] px-1.5 py-1 sm:px-2.5 shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)]">
       <Wifi className="h-3 w-3 text-[#6C63FF]" />
-      <span className="text-[10px] text-[#6C63FF]">Ready</span>
+      <span className="hidden sm:inline text-[10px] text-[#6C63FF]">Ready</span>
     </div>
   );
 }
@@ -175,28 +175,28 @@ export function Toolbar() {
   const canAnalyze = !!filename && !isAnalyzing;
 
   return (
-    <div className="flex h-11 shrink-0 items-center gap-1.5 bg-[#E0E5EC] px-3 shadow-[0_4px_6px_rgb(163,177,198,0.3)] relative z-10">
+    <div className="flex h-11 shrink-0 items-center gap-1 bg-[#E0E5EC] px-2 sm:gap-1.5 sm:px-3 shadow-[0_4px_6px_rgb(163,177,198,0.3)] relative z-10">
       {/* Branding */}
       <div className="flex items-center gap-2 select-none mr-1">
-        <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#E0E5EC] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[#E0E5EC] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]">
           <ShieldCheck className="h-4 w-4 text-[#6C63FF]" />
         </div>
-        <span className="text-sm font-bold tracking-tight text-[#3D4852]">
+        <span className="hidden sm:inline text-sm font-bold tracking-tight text-[#3D4852]">
           CODE<span className="text-[#6C63FF]">-AI</span>
         </span>
       </div>
 
-      <Separator orientation="vertical" className="mx-1 h-5 bg-[#B0BEC5]/30" />
+      <Separator orientation="vertical" className="hidden sm:block mx-1 h-5 bg-[#B0BEC5]/30" />
 
       {/* Upload */}
       <Tooltip>
         <TooltipTrigger
-          className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-transparent text-[#6B7280] hover:text-[#3D4852] hover:shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)] active:shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)] h-8 gap-1.5 px-3 text-xs transition-all duration-300 ease-out outline-none select-none disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-transparent text-[#6B7280] hover:text-[#3D4852] hover:shadow-[5px_5px_10px_rgb(163,177,198,0.6),-5px_-5px_10px_rgba(255,255,255,0.5)] active:shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)] h-8 gap-1.5 px-2 sm:px-3 text-xs transition-all duration-300 ease-out outline-none select-none disabled:pointer-events-none disabled:opacity-50"
           onClick={() => fileInputRef.current?.click()}
           disabled={isAnalyzing}
         >
           <Upload className="h-3.5 w-3.5" />
-          Upload
+          <span className="hidden sm:inline">Upload</span>
         </TooltipTrigger>
         <TooltipContent side="bottom">Upload a Python (.py) file</TooltipContent>
       </Tooltip>
@@ -209,45 +209,45 @@ export function Toolbar() {
         onChange={handleFileSelect}
       />
 
-      {/* Filename pill */}
+      {/* Filename pill — desktop only */}
       {filename && (
-        <div className="flex items-center gap-1.5 rounded-xl bg-[#E0E5EC] px-3 py-1 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]">
+        <div className="hidden sm:flex items-center gap-1.5 rounded-xl bg-[#E0E5EC] px-3 py-1 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]">
           <div className={cn(
             "h-1.5 w-1.5 rounded-full",
             isAnalyzing ? "bg-[#6C63FF] animate-pulse-soft" :
             isComplete ? "bg-[#38A169]" : "bg-[#6B7280]/50"
           )} />
-          <span className="max-w-[160px] truncate font-mono text-[11px] text-[#6B7280]">
+          <span className="max-w-[120px] truncate font-mono text-[11px] text-[#6B7280]">
             {filename}
           </span>
         </div>
       )}
 
-      <Separator orientation="vertical" className="mx-1 h-5 bg-[#B0BEC5]/30" />
+      <Separator orientation="vertical" className="hidden sm:block mx-1 h-5 bg-[#B0BEC5]/30" />
 
       {/* Analyze / Stop */}
       {isAnalyzing ? (
         <Button
           variant="destructive"
           size="sm"
-          className="h-8 gap-1.5 px-3 text-xs"
+          className="h-8 gap-1.5 px-2 sm:px-3 text-xs"
           onClick={abort}
         >
           <Square className="h-3 w-3" />
-          Stop
+          <span className="hidden sm:inline">Stop</span>
         </Button>
       ) : (
         <Tooltip>
           <TooltipTrigger
             className={cn(
-              "inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#6C63FF] text-white shadow-[9px_9px_16px_rgb(163,177,198,0.6),-9px_-9px_16px_rgba(255,255,255,0.5)] hover:-translate-y-[1px] hover:shadow-[12px_12px_20px_rgb(163,177,198,0.7),-12px_-12px_20px_rgba(255,255,255,0.6)] active:translate-y-[0.5px] active:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.2),inset_-3px_-3px_6px_rgba(255,255,255,0.1)] h-8 gap-1.5 px-3 text-xs font-medium transition-all duration-300 ease-out outline-none select-none disabled:pointer-events-none disabled:opacity-50",
+              "inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#6C63FF] text-white shadow-[9px_9px_16px_rgb(163,177,198,0.6),-9px_-9px_16px_rgba(255,255,255,0.5)] hover:-translate-y-[1px] hover:shadow-[12px_12px_20px_rgb(163,177,198,0.7),-12px_-12px_20px_rgba(255,255,255,0.6)] active:translate-y-[0.5px] active:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.2),inset_-3px_-3px_6px_rgba(255,255,255,0.1)] h-8 gap-1.5 px-2 sm:px-3 text-xs font-medium transition-all duration-300 ease-out outline-none select-none disabled:pointer-events-none disabled:opacity-50",
               !canAnalyze && "opacity-50"
             )}
             disabled={!canAnalyze}
             onClick={handleAnalyze}
           >
             <Play className="h-3 w-3" />
-            Analyze
+            <span className="hidden sm:inline">Analyze</span>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             {filename ? "Run CVE analysis on current file" : "Upload a file first"}
@@ -272,31 +272,34 @@ export function Toolbar() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* PDF Toggle */}
-      <Tooltip>
-        <TooltipTrigger className="inline-flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#6C63FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#E0E5EC] rounded-xl px-1">
-          <FileText className="h-3.5 w-3.5 text-[#6B7280]" />
-          <span className="text-[11px] text-[#6B7280]">PDF</span>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Also generate a PDF report</TooltipContent>
-      </Tooltip>
-      <Switch
-        checked={pdfRequested}
-        onCheckedChange={setPdfRequested}
-        className="scale-75"
-      />
+      {/* PDF Toggle — desktop only */}
+      <div className="hidden sm:flex items-center gap-1.5">
+        <Tooltip>
+          <TooltipTrigger className="inline-flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[#6C63FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#E0E5EC] rounded-xl px-1">
+            <FileText className="h-3.5 w-3.5 text-[#6B7280]" />
+            <span className="text-[11px] text-[#6B7280]">PDF</span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Also generate a PDF report</TooltipContent>
+        </Tooltip>
+        <Switch
+          checked={pdfRequested}
+          onCheckedChange={setPdfRequested}
+          className="scale-75"
+        />
+        <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
+      </div>
 
-      <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
+      {/* Model selector — desktop only */}
+      <div className="hidden sm:block">
+        <ModelSelector />
+      </div>
 
-      {/* Model selector */}
-      <ModelSelector />
-
-      <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
+      <Separator orientation="vertical" className="hidden sm:block mx-2 h-5 bg-[#B0BEC5]/30" />
 
       {/* Backend selector */}
       <BackendSelector />
 
-      <Separator orientation="vertical" className="mx-2 h-5 bg-[#B0BEC5]/30" />
+      <Separator orientation="vertical" className="mx-1 sm:mx-2 h-5 bg-[#B0BEC5]/30" />
 
       {/* Connection status */}
       <ConnectionPill />

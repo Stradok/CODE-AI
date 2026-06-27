@@ -25,7 +25,7 @@ export function StatusBar() {
   return (
     <div className="flex h-6 shrink-0 items-center justify-between bg-[#E0E5EC] px-3 shadow-[0_-2px_4px_rgb(163,177,198,0.15)]">
       {/* Left: status */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
         {status === "idle" && (
           <span className="text-[10px] text-[#6B7280]/50">
             {filename ? "Ready to analyze" : "No file loaded"}
@@ -34,7 +34,7 @@ export function StatusBar() {
 
         {status === "analyzing" && (
           <>
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5">
               <div className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-[#6C63FF]" />
               <span className="text-[10px] text-[#6C63FF]">
                 Analyzing
@@ -42,7 +42,7 @@ export function StatusBar() {
               </span>
             </div>
             {analyzing > 0 && (
-              <span className="text-[10px] text-[#6B7280]">
+              <span className="hidden sm:inline text-[10px] text-[#6B7280]">
                 {analyzing} function{analyzing !== 1 ? "s" : ""} in progress
               </span>
             )}
@@ -50,45 +50,45 @@ export function StatusBar() {
         )}
 
         {status === "complete" && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               <div className="h-1.5 w-1.5 rounded-full bg-[#38A169]" />
-              <span className="text-[10px] text-[#38A169]">Analysis complete</span>
+              <span className="text-[10px] text-[#38A169]">Complete</span>
             </div>
             {totalVulns > 0 && (
-              <span className="text-[10px] text-[#6B7280]">
-                {totalVulns} vulnerabilit{totalVulns !== 1 ? "ies" : "y"} •{" "}
+              <span className="truncate text-[10px] text-[#6B7280]">
+                {totalVulns} vuln{totalVulns !== 1 ? "s" : ""} •{" "}
                 {fixed} fixed • {clean} clean
-                {errored > 0 && ` • ${errored} errored`}
+                {errored > 0 && ` • ${errored} err`}
               </span>
             )}
             {totalVulns === 0 && (
               <span className="text-[10px] text-[#6B7280]">
-                No vulnerabilities found
+                No vulnerabilities
               </span>
             )}
           </div>
         )}
 
         {status === "error" && (
-          <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
-            <span className="text-[10px] text-[#DC2626]">
-              {error ? `Error: ${error.slice(0, 80)}${error.length > 80 ? "…" : ""}` : "Analysis failed"}
+          <div className="flex min-w-0 items-center gap-1.5">
+            <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#DC2626]" />
+            <span className="truncate text-[10px] text-[#DC2626]">
+              {error ? `Error: ${error.slice(0, 60)}${error.length > 60 ? "…" : ""}` : "Analysis failed"}
             </span>
           </div>
         )}
       </div>
 
       {/* Right: identifiers */}
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 pl-2">
         {functions.length > 0 && (
           <span className="text-[10px] text-[#6B7280]/60">
             {functions.length} fn
           </span>
         )}
         {jobId && (
-          <span className="font-mono text-[10px] text-[#6B7280]/40">
+          <span className="hidden sm:inline font-mono text-[10px] text-[#6B7280]/40">
             {jobId.slice(0, 8)}
           </span>
         )}

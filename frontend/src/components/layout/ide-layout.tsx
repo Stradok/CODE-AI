@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -11,6 +12,7 @@ import { AnalysisPanel } from "@/components/analysis/analysis-panel";
 import { RepoPanel } from "@/components/github/repo-panel";
 import { useEditorStore } from "@/stores/editor-store";
 import { useRepoStore } from "@/stores/repo-store";
+import { useAnalysisStore } from "@/stores/analysis-store";
 import {
   ShieldCheck,
   Upload,
@@ -19,12 +21,13 @@ import {
   Zap,
   FileCode2,
   GitFork,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function EmptyState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-10 p-8 select-none bg-[#E0E5EC]">
+    <div className="flex h-full flex-col items-center justify-center gap-8 p-8 select-none bg-[#E0E5EC]">
       {/* Hero icon well */}
       <div className="flex flex-col items-center gap-5 text-center">
         <div className="relative">
@@ -47,7 +50,7 @@ function EmptyState() {
       </div>
 
       {/* Pipeline steps - neumorphic chips */}
-      <div className="flex items-start gap-4">
+      <div className="flex flex-wrap justify-center items-start gap-4">
         {STEPS.map((step, i) => (
           <div key={i} className="flex flex-col items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E0E5EC] shadow-[inset_4px_4px_8px_rgb(163,177,198,0.6),inset_-4px_-4px_8px_rgba(255,255,255,0.5)]">
@@ -56,9 +59,6 @@ function EmptyState() {
             <span className="text-[10px] text-[#6B7280] text-center leading-tight max-w-[60px] font-medium">
               {step.label}
             </span>
-            {i < STEPS.length - 1 && (
-              <div className="mt-1 h-px w-8 bg-[#B0BEC5]/30" />
-            )}
           </div>
         ))}
       </div>
@@ -108,88 +108,164 @@ function ModeTab({ label, icon: Icon, active, onClick }: ModeTabProps) {
   );
 }
 
-export function IdeLayout() {
+// ─── Editor section (shared between mobile and desktop) ──────────────────────
+
+function EditorSection() {
   const filename = useEditorStore((s) => s.filename);
   const description = useEditorStore((s) => s.description);
   const setDescription = useEditorStore((s) => s.setDescription);
-
   const mode = useRepoStore((s) => s.mode);
   const setMode = useRepoStore((s) => s.setMode);
 
   return (
-    <ResizablePanelGroup
-      orientation="horizontal"
-      className="flex-1 overflow-hidden bg-[#E0E5EC]"
-    >
-      {/* Left panel */}
-      <ResizablePanel defaultSize="72%" minSize="30%">
-        <div className="flex h-full flex-col bg-[#E0E5EC]">
-          {/* Mode toggle */}
-          <div className="flex shrink-0 items-center gap-1 bg-[#E0E5EC] px-3 py-2 shadow-[0_2px_4px_rgb(163,177,198,0.2)]">
-            <ModeTab
-              label="File"
-              icon={FileCode2}
-              active={mode === "file"}
-              onClick={() => setMode("file")}
-            />
-            <ModeTab
-              label="GitHub Repo"
-              icon={GitFork}
-              active={mode === "repo"}
-              onClick={() => setMode("repo")}
-            />
-          </div>
+    <div className="flex h-full flex-col bg-[#E0E5EC]">
+      {/* Mode toggle */}
+      <div className="flex shrink-0 items-center gap-1 bg-[#E0E5EC] px-3 py-2 shadow-[0_2px_4px_rgb(163,177,198,0.2)]">
+        <ModeTab
+          label="File"
+          icon={FileCode2}
+          active={mode === "file"}
+          onClick={() => setMode("file")}
+        />
+        <ModeTab
+          label="GitHub Repo"
+          icon={GitFork}
+          active={mode === "repo"}
+          onClick={() => setMode("repo")}
+        />
+      </div>
 
-          {mode === "repo" ? (
-            <div className="flex-1 overflow-hidden">
-              <RepoPanel />
-            </div>
-          ) : (
-            <>
-              {/* Editor tab bar */}
-              {filename && (
-                <div className="flex shrink-0 items-center bg-[#E0E5EC] shadow-[0_2px_4px_rgb(163,177,198,0.2)]">
-                  <div className="flex items-center gap-2.5 bg-[#E0E5EC] px-4 py-1.5 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)] rounded-tr-xl">
-                    <div className="h-2 w-2 rounded-full bg-[#6C63FF]" />
-                    <span className="font-mono text-[11px] font-semibold text-[#3D4852]">
-                      {filename}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Description input */}
-              {filename && (
-                <div className="shrink-0 bg-[#E0E5EC] px-4 py-2.5 shadow-[inset_0_-2px_4px_rgb(163,177,198,0.15)]">
-                  <div className="flex items-start gap-2.5 rounded-2xl bg-[#E0E5EC] px-4 py-2.5 shadow-[inset_4px_4px_8px_rgb(163,177,198,0.6),inset_-4px_-4px_8px_rgba(255,255,255,0.5)]">
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe what this code does (optional — AI generates one if empty)"
-                      rows={1}
-                      className="w-full resize-none bg-transparent font-sans text-xs text-[#3D4852] placeholder:text-[#A0AEC0] focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Editor / drop zone / empty state */}
-              <div className="flex-1 overflow-hidden">
-                <FileDropZone>
-                  {filename ? <CodeEditor /> : <EmptyState />}
-                </FileDropZone>
-              </div>
-            </>
-          )}
+      {mode === "repo" ? (
+        <div className="flex-1 overflow-hidden">
+          <RepoPanel />
         </div>
-      </ResizablePanel>
+      ) : (
+        <>
+          {/* Editor tab bar */}
+          {filename && (
+            <div className="flex shrink-0 items-center bg-[#E0E5EC] shadow-[0_2px_4px_rgb(163,177,198,0.2)]">
+              <div className="flex items-center gap-2.5 bg-[#E0E5EC] px-4 py-1.5 shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)] rounded-tr-xl">
+                <div className="h-2 w-2 rounded-full bg-[#6C63FF]" />
+                <span className="font-mono text-[11px] font-semibold text-[#3D4852]">
+                  {filename}
+                </span>
+              </div>
+            </div>
+          )}
 
-      <ResizableHandle withHandle />
+          {/* Description input */}
+          {filename && (
+            <div className="shrink-0 bg-[#E0E5EC] px-4 py-2.5 shadow-[inset_0_-2px_4px_rgb(163,177,198,0.15)]">
+              <div className="flex items-start gap-2.5 rounded-2xl bg-[#E0E5EC] px-4 py-2.5 shadow-[inset_4px_4px_8px_rgb(163,177,198,0.6),inset_-4px_-4px_8px_rgba(255,255,255,0.5)]">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe what this code does (optional — AI generates one if empty)"
+                  rows={1}
+                  className="w-full resize-none bg-transparent font-sans text-xs text-[#3D4852] placeholder:text-[#A0AEC0] focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
 
-      {/* Right panel: Analysis */}
-      <ResizablePanel defaultSize="28%" minSize="20%">
-        <AnalysisPanel />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+          {/* Editor / drop zone / empty state */}
+          <div className="flex-1 overflow-hidden">
+            <FileDropZone>
+              {filename ? <CodeEditor /> : <EmptyState />}
+            </FileDropZone>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Mobile bottom tab bar ───────────────────────────────────────────────────
+
+interface BottomTabProps {
+  label: string;
+  icon: React.ElementType;
+  active: boolean;
+  badge?: boolean;
+  onClick: () => void;
+}
+
+function BottomTab({ label, icon: Icon, active, badge, onClick }: BottomTabProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-all duration-200 select-none",
+        active ? "text-[#6C63FF]" : "text-[#6B7280]"
+      )}
+    >
+      <div className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-200",
+        active
+          ? "bg-[#E0E5EC] shadow-[inset_3px_3px_6px_rgb(163,177,198,0.6),inset_-3px_-3px_6px_rgba(255,255,255,0.5)]"
+          : "hover:shadow-[3px_3px_6px_rgb(163,177,198,0.4),-3px_-3px_6px_rgba(255,255,255,0.4)]"
+      )}>
+        <Icon className="h-4 w-4" />
+        {badge && !active && (
+          <span className="absolute top-1.5 right-[calc(50%-12px)] h-2 w-2 rounded-full bg-[#6C63FF]" />
+        )}
+      </div>
+      {label}
+    </button>
+  );
+}
+
+// ─── Main layout ─────────────────────────────────────────────────────────────
+
+export function IdeLayout() {
+  const [mobilePanel, setMobilePanel] = useState<"editor" | "analysis">("editor");
+  const analysisStatus = useAnalysisStore((s) => s.status);
+  const hasResults = analysisStatus === "complete" || analysisStatus === "error";
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {/* ── Mobile layout (< md) ─────────────────────────────────────── */}
+      <div className="flex flex-1 flex-col overflow-hidden md:hidden">
+        {/* Active panel */}
+        <div className="flex-1 overflow-hidden">
+          {mobilePanel === "editor" ? <EditorSection /> : <AnalysisPanel />}
+        </div>
+
+        {/* Bottom navigation */}
+        <div className="flex shrink-0 items-center bg-[#E0E5EC] shadow-[0_-4px_6px_rgb(163,177,198,0.3)]">
+          <BottomTab
+            label="Editor"
+            icon={FileCode2}
+            active={mobilePanel === "editor"}
+            onClick={() => setMobilePanel("editor")}
+          />
+          <BottomTab
+            label="Analysis"
+            icon={Activity}
+            active={mobilePanel === "analysis"}
+            badge={hasResults}
+            onClick={() => setMobilePanel("analysis")}
+          />
+        </div>
+      </div>
+
+      {/* ── Desktop layout (>= md) ───────────────────────────────────── */}
+      <ResizablePanelGroup
+        orientation="horizontal"
+        className="hidden md:flex flex-1 overflow-hidden bg-[#E0E5EC]"
+      >
+        {/* Left panel */}
+        <ResizablePanel defaultSize="72%" minSize="30%">
+          <EditorSection />
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Right panel: Analysis */}
+        <ResizablePanel defaultSize="28%" minSize="20%">
+          <AnalysisPanel />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </div>
   );
 }

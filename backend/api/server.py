@@ -595,7 +595,20 @@ def _execute_pipeline(
         else "Python source code submitted for CVE vulnerability analysis."
     )
 
-    from pipeline.llm.context import REQUEST_CURRENT_STAGE
+    from pipeline.llm.context import (
+        REQUEST_BACKEND,
+        REQUEST_CURRENT_STAGE,
+        REQUEST_OR_KEY,
+        REQUEST_STAGE_CONFIGS,
+    )
+
+    # Snapshot request-scoped contextvars NOW (in the pipeline thread).
+    # Child threads created by fn_exec below may not inherit ContextVar values
+    # set after their parent executor was submitted — so we re-apply them
+    # explicitly at the top of _process_one via closure.
+    _ctx_backend = REQUEST_BACKEND.get("")
+    _ctx_or_key = REQUEST_OR_KEY.get("")
+    _ctx_stage_configs = REQUEST_STAGE_CONFIGS.get({})
 
     # 1. PREPROCESSING — sequential (extracts all functions first)
     emit("stage_start", {"stage": "preprocessing"})
@@ -634,6 +647,16 @@ def _execute_pipeline(
     # ------------------------------------------------------------------
     def _process_one(idx: int, chunk: dict) -> bool:
         """Return True if a fix was successfully generated for this function."""
+        # Re-apply request-scoped contextvars captured before this thread was
+        # spawned — ensures the OpenRouter key and backend choice are visible
+        # to all LLM calls regardless of executor context-copy behaviour.
+        if _ctx_backend:
+            REQUEST_BACKEND.set(_ctx_backend)
+        if _ctx_or_key:
+            REQUEST_OR_KEY.set(_ctx_or_key)
+        if _ctx_stage_configs:
+            REQUEST_STAGE_CONFIGS.set(_ctx_stage_configs)
+
         func_name = chunk.get("name", "unknown")
         emit("function_start", {"function": func_name, "index": idx, "total": total})
 
